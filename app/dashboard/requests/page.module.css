@@ -1,0 +1,15 @@
+.rq{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:1.5rem;margin-bottom:1.2rem;transition:border-color .2s;}
+.rq:hover{border-color:rgba(37,99,235,.2);}
+.rqHead{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;}
+.rqName{font-size:15px;font-weight:600;}
+.rqMeta{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;}
+.rqMsg{font-size:13.5px;color:rgba(255,255,255,.8);line-height:1.7;margin-bottom:12px;}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.tag{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:3px 10px;font-size:11.5px;color:rgba(255,255,255,.5);}
+.actions{display:flex;gap:10px;}
+.btnAccept{background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.28);color:#34d399;padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:"Inter",sans-serif;transition:all .2s;}
+.btnAccept:hover{background:rgba(16,185,129,.24);}
+.btnReject{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#f87171;padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:"Inter",sans-serif;transition:all .2s;}
+.btnReject:hover{background:rgba(239,68,68,.2);}
+.btnGhost{background:transparent;border:1px solid rgba(255,255,255,.14);color:white;padding:8px 16px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;}

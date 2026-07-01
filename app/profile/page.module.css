@@ -1,0 +1,44 @@
+.wrap{min-height:100vh;background:var(--navy);position:relative;overflow:hidden;}
+.o1{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(37,99,235,.12) 0%,transparent 65%);top:-200px;right:-100px;border-radius:50%;filter:blur(90px);pointer-events:none;}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;}
+.inner{position:relative;z-index:2;max-width:960px;margin:0 auto;padding:2rem;}
+.back{margin-bottom:1.5rem;}
+.backLink{font-size:13.5px;color:rgba(255,255,255,.5);transition:color .2s;}
+.backLink:hover{color:white;}
+.profileCard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:2rem;margin-bottom:1.75rem;position:relative;overflow:hidden;}
+.profileCard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(37,99,235,.5),transparent);}
+.profileTop{display:flex;align-items:flex-start;gap:1.5rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+.avatarWrap{position:relative;flex-shrink:0;}
+.avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;box-shadow:0 0 28px rgba(37,99,235,.45);}
+.onlineDot{position:absolute;bottom:4px;right:4px;width:14px;height:14px;background:#10b981;border-radius:50%;border:2px solid var(--navy);}
+.profileInfo{flex:1;}
+.name{font-size:1.6rem;font-weight:700;letter-spacing:-.5px;margin-bottom:.35rem;}
+.location{font-size:13.5px;color:rgba(255,255,255,.5);margin-bottom:.6rem;}
+.verifiedRow{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.verified{font-size:12px;font-weight:600;color:#34d399;background:rgba(16,185,129,.1);padding:3px 10px;border-radius:100px;border:1px solid rgba(16,185,129,.2);}
+.memberSince{font-size:12px;color:rgba(255,255,255,.4);}
+.editBtn{background:transparent;border:1px solid rgba(255,255,255,.14);color:white;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;transition:all .2s;white-space:nowrap;}
+.editBtn:hover{background:rgba(255,255,255,.08);}
+.bio{font-size:14px;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:1.75rem;max-width:580px;}
+.statsRow{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;}
+@media(max-width:640px){.statsRow{grid-template-columns:1fr 1fr;}}
+.statItem{background:rgba(255,255,255,.02);padding:1.1rem;text-align:center;}
+.statVal{font-family:"Space Grotesk",sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:4px;}
+.statLbl{font-size:11.5px;color:rgba(255,255,255,.5);}
+.twoCols{display:grid;grid-template-columns:1fr 1fr;gap:1.75rem;}
+@media(max-width:640px){.twoCols{grid-template-columns:1fr;}}
+.sectionTitle{font-family:"Space Grotesk",sans-serif;font-size:1rem;font-weight:600;margin-bottom:1rem;color:rgba(255,255,255,.7);}
+.circleList{display:flex;flex-direction:column;gap:.75rem;}
+.circleItem{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:1rem;}
+.circleDot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.circleName{font-size:14px;font-weight:600;margin-bottom:2px;}
+.circleMeta{font-size:12px;color:rgba(255,255,255,.5);}
+.goalCard{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18);border-radius:12px;padding:1.2rem;}
+.goalLabel{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#60a5fa;margin-bottom:6px;}
+.goalValue{font-size:15px;font-weight:600;margin-bottom:4px;}
+.goalSub{font-size:12.5px;color:rgba(255,255,255,.5);}
+.activityList{display:flex;flex-direction:column;gap:.9rem;}
+.actItem{display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:1rem;}
+.actIcon{font-size:16px;flex-shrink:0;margin-top:2px;}
+.actText{font-size:13.5px;color:rgba(255,255,255,.8);line-height:1.5;margin-bottom:4px;}
+.actTime{font-size:11.5px;color:rgba(255,255,255,.35);}

@@ -1,0 +1,6 @@
+.tog{width:40px;height:22px;border-radius:100px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.on{background:rgba(37,99,235,.6);}
+.off{background:rgba(255,255,255,.15);}
+.tog::after{content:'';position:absolute;top:3px;width:16px;height:16px;background:white;border-radius:50%;transition:left .2s;}
+.on::after{left:21px;}
+.off::after{left:3px;}

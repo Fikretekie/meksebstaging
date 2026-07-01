@@ -1,0 +1,8 @@
+.footer{background:var(--navy2);border-top:1px solid rgba(255,255,255,.08);padding:3rem 2.5rem;text-align:center;}
+.logo{font-family:"Space Grotesk",sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:.4rem;}
+.logo span{color:#3b82f6;}
+.tagline{color:rgba(255,255,255,.5);font-size:13px;margin-bottom:.9rem;}
+.links{display:flex;justify-content:center;gap:2rem;margin:.9rem 0;flex-wrap:wrap;}
+.links a{color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;transition:color .2s;}
+.links a:hover{color:white;}
+.copy{color:rgba(255,255,255,.18);font-size:12px;margin-top:1rem;}

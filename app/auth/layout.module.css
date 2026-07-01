@@ -1,0 +1,9 @@
+.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden;}
+.o1{position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(37,99,235,.18) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-55%);border-radius:50%;filter:blur(90px);pointer-events:none;}
+.o2{position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(139,92,246,.12) 0%,transparent 65%);bottom:-80px;right:-60px;border-radius:50%;filter:blur(80px);pointer-events:none;}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;}
+.inner{position:relative;z-index:2;width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:2.5rem;}
+.mark{width:38px;height:38px;background:linear-gradient(135deg,#2563eb,#06b6d4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk",sans-serif;font-weight:800;font-size:17px;color:white;box-shadow:0 0 20px rgba(37,99,235,.5);}
+.name{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;}
+.name span{color:#3b82f6;}
