@@ -18,11 +18,14 @@ env:
 
 jobs:
   # ───────────────────────────────────────
-  # JOB 1: Build
+  # JOB 1: Build + Deploy GitHub Pages
   # ───────────────────────────────────────
-  build:
-    name: Build Next.js
+  deploy-github-pages:
+    name: Build & Deploy to GitHub Pages
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -42,33 +45,6 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: nextjs-out
-          path: out/
-          retention-days: 1
-
-  # ───────────────────────────────────────
-  # JOB 2: Deploy to GitHub Pages
-  # ───────────────────────────────────────
-  deploy-github-pages:
-    name: Deploy to GitHub Pages
-    runs-on: ubuntu-latest
-    needs: build
-
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nextjs-out
-          path: out/
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -77,23 +53,33 @@ jobs:
           publish_branch: gh-pages
 
   # ───────────────────────────────────────
-  # JOB 3: Deploy to AWS S3
+  # JOB 2: Build + Deploy to S3
   # ───────────────────────────────────────
   deploy-s3:
-    name: Deploy to AWS S3
+    name: Build & Deploy to AWS S3
     runs-on: ubuntu-latest
-    needs: build
 
     permissions:
       id-token: write
       contents: read
 
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          name: nextjs-out
-          path: out/
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js (static export)
+        run: npm run build
+        env:
+          NODE_ENV: production
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -120,23 +106,4 @@ jobs:
 
       - name: Print S3 URL
         run: |
-          echo "✅ S3 URL: http://${{ env.S3_BUCKET }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
-
-  # ───────────────────────────────────────
-  # JOB 4: Summary
-  # ───────────────────────────────────────
-  summary:
-    name: Deployment Summary
-    runs-on: ubuntu-latest
-    needs: [deploy-github-pages, deploy-s3]
-
-    steps:
-      - name: Print summary
-        run: |
-          echo "🚀 Deployed successfully!"
-          echo ""
-          echo "🐙 GitHub Pages: https://fikretekie.github.io/meksebstaging"
-          echo "☁️  AWS S3:       http://${{ env.S3_BUCKET }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
-          echo ""
-          echo "🔖 Commit: ${{ github.sha }}"
-          echo "👤 By: ${{ github.actor }}"
+          echo "✅ S3 live at: http://${{ env.S3_BUCKET }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
