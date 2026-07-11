@@ -1,8 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Mekseb — CI/CD Pipeline
-# Deploys to BOTH GitHub Pages AND AWS S3 on every push to main
-# ─────────────────────────────────────────────────────────────────────────────
-
 name: Deploy Mekseb
 
 on:
@@ -15,36 +10,28 @@ env:
   NODE_VERSION: '20'
   AWS_REGION: us-east-1
   S3_BUCKET: mekseb-staging
+  CLOUDFRONT_DISTRIBUTION_ID: 'EZ400TULXU3HE'
 
 jobs:
-  # ───────────────────────────────────────
-  # JOB 1: Build + Deploy GitHub Pages
-  # ───────────────────────────────────────
   deploy-github-pages:
     name: Build & Deploy to GitHub Pages
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Build Next.js (static export)
+      - name: Build Next.js
         run: npm run build
         env:
           NODE_ENV: production
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -52,58 +39,46 @@ jobs:
           publish_dir: ./out
           publish_branch: gh-pages
 
-  # ───────────────────────────────────────
-  # JOB 2: Build + Deploy to S3
-  # ───────────────────────────────────────
   deploy-s3:
     name: Build & Deploy to AWS S3
     runs-on: ubuntu-latest
-
     permissions:
       id-token: write
       contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Build Next.js (static export)
+      - name: Build Next.js
         run: npm run build
         env:
           NODE_ENV: production
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Sync to S3
         run: |
-          # Static assets — long cache
           aws s3 sync out/ s3://${{ env.S3_BUCKET }}/ \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "*.html" \
             --exclude "*.json"
-
-          # HTML + JSON — no cache so updates show immediately
           aws s3 sync out/ s3://${{ env.S3_BUCKET }}/ \
             --delete \
             --cache-control "public, max-age=0, must-revalidate" \
             --include "*.html" \
             --include "*.json"
-
-      - name: Print S3 URL
+      - name: Invalidate CloudFront cache
         run: |
-          echo "✅ S3 live at: http://${{ env.S3_BUCKET }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
