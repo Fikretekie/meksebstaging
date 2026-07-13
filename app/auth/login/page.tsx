@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'aws-amplify/auth'
 import styles from './page.module.css'
 
 export default function LoginPage() {
@@ -16,8 +17,13 @@ export default function LoginPage() {
     setError('')
     if (!email || !password) { setError('Please fill in all fields.'); return }
     setLoading(true)
-    // TODO: connect to AWS Cognito
-    setTimeout(() => { setLoading(false); router.push('/dashboard') }, 1200)
+    try {
+      await signIn({ username: email, password })
+      router.push('/dashboard')
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.')
+      setLoading(false)
+    }
   }
 
   return (
