@@ -1,3 +1,6 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { getCurrentUser } from 'aws-amplify/auth'
 import MetricCard from '@/components/dashboard/MetricCard'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
@@ -19,10 +22,38 @@ const statusMap: Record<string,{label:string;cls:string}> = {
   paid:{label:'✓ Paid',cls:'ok'}, pending:{label:'⏳ Pending',cls:'pend'}, late:{label:'✗ Late',cls:'late'}
 }
 
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function DashboardPage() {
+  const [userName, setUserName] = useState('there')
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser()
+        const email = user.signInDetails?.loginId || ''
+        const name = email.split('@')[0]
+        setUserName(name)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    loadUser()
+  }, [])
+
   return (
     <div>
-      <PageHeader title="Good morning, James 👋" sub="Your savings snapshot for June 2026." btnLabel="+ New circle" btnHref="/dashboard/create" />
+      <PageHeader 
+        title={`${getGreeting()}, ${userName} 👋`} 
+        sub="Your savings snapshot." 
+        btnLabel="+ New circle" 
+        btnHref="/dashboard/create/" 
+      />
       <div className={styles.metrics}>
         <MetricCard color="blue"   label="💰 Total saved"   value="$14,800" note="↑ +$1,800 this month" />
         <MetricCard color="gold"   label="🏦 Active circles" value="3"       note="14 members total" noteType="neutral" />
@@ -31,7 +62,7 @@ export default function DashboardPage() {
         <MetricCard color="cyan"   label="🌐 Network rank"  value="Top 8%"  note="Most trusted saver" />
       </div>
       <div className={styles.card}>
-        <div className={styles.cardH}><span className={styles.cardT}>Payment status — June 2026</span><button className={styles.btnGhost}>Send reminders</button></div>
+        <div className={styles.cardH}><span className={styles.cardT}>Payment status</span><button className={styles.btnGhost}>Send reminders</button></div>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead><tr><th>Member</th><th>Circle</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
