@@ -1,33 +1,92 @@
 'use client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { getCurrentUser } from 'aws-amplify/auth'
+import { getCircles } from '@/lib/api'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
-const groups=[
-  {name:'Family Fund', meta:'5 members · $200/mo · Admin', saved:'$7,200', goal:'$12,000', pct:60, total:'$1,000/mo', color:'blue',   members:[{i:'JR',c:'#2563eb,#06b6d4'},{i:'SM',c:'#8b5cf6,#ec4899'},{i:'TK',c:'#10b981,#06b6d4'},{i:'LE',c:'#f59e0b,#ef4444'},{i:'RB',c:'#ec4899,#8b5cf6'}] },
-  {name:'Work Circle', meta:'6 members · $100/mo · Member',saved:'$4,200', goal:'$7,200',  pct:58, total:'$600/mo',   color:'green',  members:[{i:'JR',c:'#2563eb,#06b6d4'},{i:'MW',c:'#06b6d4,#2563eb'},{i:'TK',c:'#10b981,#06b6d4'},{i:'+3',c:'#8b5cf6,#ec4899'}] },
-  {name:'Invest Club', meta:'3 members · $500/mo · Admin', saved:'$3,400', goal:'$6,000',  pct:57, total:'$1,500/mo', color:'purple', members:[{i:'LE',c:'#f59e0b,#ef4444'},{i:'RB',c:'#ec4899,#8b5cf6'},{i:'JR',c:'#2563eb,#06b6d4'}] },
-]
-const barColor: Record<string,string>={blue:'linear-gradient(90deg,#2563eb,#06b6d4)',green:'linear-gradient(90deg,#10b981,#34d399)',purple:'linear-gradient(90deg,#8b5cf6,#ec4899)'}
-export default function GroupsPage(){
-  return(
+
+const barColor: Record<string,string> = {
+  0:'linear-gradient(90deg,#2563eb,#06b6d4)',
+  1:'linear-gradient(90deg,#10b981,#34d399)',
+  2:'linear-gradient(90deg,#8b5cf6,#ec4899)',
+  3:'linear-gradient(90deg,#f59e0b,#ef4444)',
+  4:'linear-gradient(90deg,#06b6d4,#2563eb)',
+}
+
+export default function GroupsPage() {
+  const [circles, setCircles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadCircles = async () => {
+      try {
+        const user = await getCurrentUser()
+        const data = await getCircles(user.userId)
+        if (data.circles) {
+          setCircles(data.circles)
+        }
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadCircles()
+  }, [])
+
+  if (loading) {
+    return (
+      <div>
+        <PageHeader title="My circles" sub="Loading your circles..." />
+        <div style={{color:'rgba(255,255,255,.5)',padding:'2rem'}}>Loading...</div>
+      </div>
+    )
+  }
+
+  if (circles.length === 0) {
+    return (
+      <div>
+        <PageHeader title="My circles" sub="You don't have any circles yet." btnLabel="+ New circle" btnHref="/dashboard/create/" />
+        <div style={{textAlign:'center',padding:'4rem',color:'rgba(255,255,255,.4)'}}>
+          <div style={{fontSize:'3rem',marginBottom:'1rem'}}>👥</div>
+          <div style={{fontSize:'1.1rem',marginBottom:'.5rem'}}>No circles yet</div>
+          <div style={{fontSize:'13px'}}>Create your first savings circle to get started!</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
     <div>
-      <PageHeader title="My circles" sub="You manage or belong to 3 savings circles." btnLabel="+ New circle" btnHref="/dashboard/create" />
+      <PageHeader title="My circles" sub={`You belong to ${circles.length} savings circle${circles.length!==1?'s':''}.`} btnLabel="+ New circle" btnHref="/dashboard/create/" />
       <div className={styles.grid}>
-        {groups.map(g=>(
-          <Link key={g.name} href={`/dashboard/group?name=${encodeURIComponent(g.name)}`} className={styles.gc}>
-            <div className={styles.topBar} style={{background:barColor[g.color]}}/>
-            <div className={styles.gcHead}>
-              <div><div className={styles.gcName}>{g.name}</div><div className={styles.gcMeta}>{g.meta}</div></div>
-              <span className={styles.activeBadge}>Active</span>
-            </div>
-            <div className={styles.progLabels}><span>Saved</span><span>{g.saved} / {g.goal}</span></div>
-            <div className={styles.progBar}><div className={styles.progFill} style={{width:`${g.pct}%`,background:barColor[g.color]}}/></div>
-            <div className={styles.gcFoot}>
-              <div className={styles.avStack}>{g.members.map(m=><div key={m.i} className={styles.av} style={{background:`linear-gradient(135deg,${m.c})`}}>{m.i}</div>)}</div>
-              <div className={styles.amt}><div className={styles.amtVal}>{g.total}</div><div className={styles.amtLbl}>group total</div></div>
-            </div>
-          </Link>
-        ))}
+        {circles.map((g, index) => {
+          const saved = parseFloat(g.totalSaved || '0')
+          const goal = 10000
+          const pct = Math.min(Math.round((saved / goal) * 100), 100)
+          const color = barColor[index % 5]
+          return (
+            <Link key={g.circleId} href={`/dashboard/group/?id=${g.circleId}`} className={styles.gc}>
+              <div className={styles.topBar} style={{background:color}}/>
+              <div className={styles.gcHead}>
+                <div>
+                  <div className={styles.gcName}>{g.name}</div>
+                  <div className={styles.gcMeta}>${g.amount}/mo · {g.currency}</div>
+                </div>
+                <span className={styles.activeBadge}>{g.status || 'Active'}</span>
+              </div>
+              <div className={styles.progLabels}><span>Saved</span><span>${saved} / ${goal}</span></div>
+              <div className={styles.progBar}><div className={styles.progFill} style={{width:`${pct}%`,background:color}}/></div>
+              <div className={styles.gcFoot}>
+                <div className={styles.amt}>
+                  <div className={styles.amtVal}>${g.amount}/mo</div>
+                  <div className={styles.amtLbl}>{g.goal || 'Savings goal'}</div>
+                </div>
+              </div>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

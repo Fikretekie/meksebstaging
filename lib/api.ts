@@ -44,4 +44,27 @@ export async function getDashboard(userId: string) {
   return res.json()
 }
 
-// Record a
+// Get all circles for a user
+export async function getCircles(userId: string) {
+  const res = await fetch(`${API_URL}/circles?userId=${userId}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return res.json()
+}
+
+// Record a payment
+export async function makePayment(data: {
+  paymentId: string
+  userId: string
+  circleId: string
+  amount: number
+  month: string
+}) {
+  const res = await fetch(`${API_URL}/payments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return res.json()
+}
