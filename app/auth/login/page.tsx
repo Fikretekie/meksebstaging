@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'aws-amplify/auth'
+import { signIn, signOut } from 'aws-amplify/auth'
 import styles from './page.module.css'
 
 export default function LoginPage() {
@@ -18,6 +18,7 @@ export default function LoginPage() {
     if (!email || !password) { setError('Please fill in all fields.'); return }
     setLoading(true)
     try {
+      try { await signOut() } catch(e) {}
       await signIn({ username: email, password })
       router.push('/dashboard')
     } catch (err: any) {
