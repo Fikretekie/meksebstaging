@@ -1,18 +1,38 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { getCurrentUser } from 'aws-amplify/auth'
+import { createCircle } from '@/lib/api'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
 
 export default function CreatePage(){
-  const router = useRouter()
   const [step, setStep] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({ name:'', amount:'', currency:'USD', maxMembers:'', dueDay:'1st of month', goal:'', desc:'', access:'Invite only', qualifications:'', withdrawal:'', quitting:'' })
   const set = (k:string) => (e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) => setForm(f=>({...f,[k]:e.target.value}))
 
-  const handleCreate = () => {
-    // TODO: connect to backend API
-    router.push('/dashboard/groups')
+  const handleCreate = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const user = await getCurrentUser()
+      const circleId = `circle_${Date.now()}`
+      await createCircle({
+        circleId,
+        name: form.name,
+        amount: parseFloat(form.amount) || 0,
+        currency: form.currency,
+        maxMembers: parseInt(form.maxMembers) || 5,
+        goal: form.goal,
+        description: form.desc,
+        createdBy: user.userId,
+      })
+      window.location.href = '/dashboard/groups/'
+    } catch (err: any) {
+      setError(err.message || 'Failed to create circle. Please try again.')
+      setLoading(false)
+    }
   }
 
   return(
@@ -63,11 +83,12 @@ export default function CreatePage(){
             <div className={styles.infoTitle}>📋 Your policy will be shown to all members</div>
             <div className={styles.infoText}>All members must agree to the policy before joining. You can edit it later with group approval.</div>
           </div>
+          {error && <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:'8px',padding:'10px 14px',fontSize:'13px',color:'#f87171',marginTop:'1rem'}}>{error}</div>}
         </>)}
         <div className={styles.actions}>
           {step>0 && <button className={styles.btnBack} onClick={()=>setStep(s=>s-1)}>← Back</button>}
           {step<2 && <button className={styles.btnNext} onClick={()=>setStep(s=>s+1)}>Continue →</button>}
-          {step===2 && <button className={styles.btnCreate} onClick={handleCreate}>Create circle →</button>}
+          {step===2 && <button className={styles.btnCreate} onClick={handleCreate} disabled={loading}>{loading ? 'Creating...' : 'Create circle →'}</button>}
           <button className={styles.btnSave} onClick={()=>{}}>Save draft</button>
         </div>
       </div>
