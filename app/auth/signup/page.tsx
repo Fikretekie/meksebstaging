@@ -1,14 +1,12 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { signUp, confirmSignUp } from 'aws-amplify/auth'
 import styles from './page.module.css'
 
 const countries = ['United States','United Kingdom','Canada','Australia','Ethiopia','Nigeria','Kenya','Ghana','South Africa','Germany','France','Spain','UAE','India','Other']
 
 export default function SignupPage() {
-  const router = useRouter()
   const [form, setForm] = useState({ firstName:'', lastName:'', email:'', country:'United States', password:'', confirm:'' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -49,7 +47,7 @@ export default function SignupPage() {
     setLoading(true)
     try {
       await confirmSignUp({ username: form.email, confirmationCode: code })
-      router.push('/onboarding')
+      window.location.href = '/onboarding'
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please try again.')
       setLoading(false)
