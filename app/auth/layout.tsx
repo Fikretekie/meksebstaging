@@ -1,16 +1,14 @@
-import Link from 'next/link'
-import styles from './layout.module.css'
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+'use client'
+import './globals.css'
+import { Amplify } from 'aws-amplify'
+import { amplifyConfig } from '../amplify-config'
+
+Amplify.configure(amplifyConfig)
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={styles.wrap}>
-      <div className={styles.o1}/><div className={styles.o2}/><div className={styles.grid}/>
-      <div className={styles.inner}>
-        <Link href="/" className={styles.logo}>
-          <div className={styles.mark}>M</div>
-          <span className={styles.name}>Me<span>K</span>seb</span>
-        </Link>
-        {children}
-      </div>
-    </div>
+    <html lang="en">
+      <body>{children}</body>
+    </html>
   )
 }
