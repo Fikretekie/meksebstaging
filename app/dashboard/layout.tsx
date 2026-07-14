@@ -1,29 +1,60 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { getCurrentUser, signOut } from 'aws-amplify/auth'
 import styles from './layout.module.css'
 
 const nav = [
   { group:'Overview', items:[
-    { href:'/dashboard',label:'Dashboard',icon:'⊞' },
-    { href:'/dashboard/savings',label:'Savings',icon:'💰' },
-    { href:'/dashboard/groups',label:'My circles',icon:'👥',badge:'3' },
-    { href:'/dashboard/payments',label:'Payments',icon:'💳' },
+    { href:'/dashboard/',label:'Dashboard',icon:'⊞' },
+    { href:'/dashboard/savings/',label:'Savings',icon:'💰' },
+    { href:'/dashboard/groups/',label:'My circles',icon:'👥',badge:'3' },
+    { href:'/dashboard/payments/',label:'Payments',icon:'💳' },
   ]},
   { group:'Community', items:[
-    { href:'/dashboard/network',label:'Network',icon:'🌐' },
-    { href:'/dashboard/requests',label:'Join requests',icon:'📬',badge:'2' },
-    { href:'/dashboard/notifications',label:'Alerts',icon:'🔔',badge:'4',badgeRed:true },
+    { href:'/dashboard/network/',label:'Network',icon:'🌐' },
+    { href:'/dashboard/requests/',label:'Join requests',icon:'📬',badge:'2' },
+    { href:'/dashboard/notifications/',label:'Alerts',icon:'🔔',badge:'4',badgeRed:true },
   ]},
   { group:'Manage', items:[
-    { href:'/dashboard/create',label:'Create circle',icon:'✦' },
-    { href:'/dashboard/policy',label:'Group policy',icon:'📋' },
-    { href:'/dashboard/settings',label:'Settings',icon:'⚙' },
+    { href:'/dashboard/create/',label:'Create circle',icon:'✦' },
+    { href:'/dashboard/policy/',label:'Group policy',icon:'📋' },
+    { href:'/dashboard/settings/',label:'Settings',icon:'⚙' },
   ]},
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname()
+  const [userName, setUserName] = useState('Loading...')
+  const [userEmail, setUserEmail] = useState('')
+  const [initials, setInitials] = useState('...')
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser()
+        const email = user.signInDetails?.loginId || ''
+        setUserEmail(email)
+        const name = email.split('@')[0]
+        setUserName(name)
+        setInitials(name.slice(0, 2).toUpperCase())
+      } catch (err) {
+        window.location.href = '/auth/login/'
+      }
+    }
+    loadUser()
+  }, [])
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      window.location.href = '/auth/login/'
+    } catch (err) {
+      window.location.href = '/auth/login/'
+    }
+  }
+
   return (
     <div>
       <nav className={styles.nav}>
@@ -33,11 +64,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Link>
         <div className={styles.navRight}>
           <div className={styles.userInfo}>
-            <div className={styles.userName}>James Richardson</div>
-            <div className={styles.userEmail}>james.r@email.com</div>
+            <div className={styles.userName}>{userName}</div>
+            <div className={styles.userEmail}>{userEmail}</div>
           </div>
-          <Link href="/profile" className={styles.avatar}>JR</Link>
-          <Link href="/auth/login" className={styles.btnGhost}>Sign out</Link>
+          <Link href="/profile/" className={styles.avatar}>{initials}</Link>
+          <button onClick={handleSignOut} className={styles.btnGhost}>Sign out</button>
         </div>
       </nav>
       <div className={styles.shell}>
