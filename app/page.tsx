@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from 'react'
 import Nav from '@/components/landing/Nav'
 import Hero from '@/components/landing/Hero'
 import Features from '@/components/landing/Features'
@@ -7,7 +8,15 @@ import Network from '@/components/landing/Network'
 import Testimonials from '@/components/landing/Testimonials'
 import CTA from '@/components/landing/CTA'
 import Footer from '@/components/landing/Footer'
+
 export default function Home() {
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path.startsWith('/dashboard')) {
+      window.location.replace(path)
+    }
+  }, [])
+
   return (
     <main>
       <Nav />
