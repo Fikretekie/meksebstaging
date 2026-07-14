@@ -1,14 +1,17 @@
-'use client'
-import './globals.css'
-import { Amplify } from 'aws-amplify'
-import { amplifyConfig } from '../amplify-config'
+import styles from './layout.module.css'
+import Link from 'next/link'
 
-Amplify.configure(amplifyConfig)
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
+    <div className={styles.wrap}>
+      <div className={styles.o1}/><div className={styles.o2}/><div className={styles.grid}/>
+      <div className={styles.inner}>
+        <Link href="/" className={styles.logo}>
+          <div className={styles.mark}>M</div>
+          <span className={styles.name}>Me<span>K</span>seb</span>
+        </Link>
+        {children}
+      </div>
+    </div>
   )
 }
