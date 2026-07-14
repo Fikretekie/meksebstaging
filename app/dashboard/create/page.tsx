@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { getCurrentUser } from 'aws-amplify/auth'
+import { fetchUserAttributes } from 'aws-amplify/auth'
 import { createCircle } from '@/lib/api'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
@@ -16,7 +16,8 @@ export default function CreatePage(){
     setLoading(true)
     setError('')
     try {
-      const user = await getCurrentUser()
+      const attributes = await fetchUserAttributes()
+      const userId = attributes.sub || ''
       const circleId = `circle_${Date.now()}`
       await createCircle({
         circleId,
@@ -26,7 +27,7 @@ export default function CreatePage(){
         maxMembers: parseInt(form.maxMembers) || 5,
         goal: form.goal,
         description: form.desc,
-        createdBy: user.userId,
+        createdBy: userId,
       })
       window.location.href = '/dashboard/groups/'
     } catch (err: any) {
