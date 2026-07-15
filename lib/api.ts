@@ -68,3 +68,12 @@ export async function makePayment(data: {
   })
   return res.json()
 }
+// Send email notification
+export async function sendEmail(type: string, data: Record<string, any>) {
+  const res = await fetch(`${API_URL}/email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, data }),
+  })
+  return res.json()
+}

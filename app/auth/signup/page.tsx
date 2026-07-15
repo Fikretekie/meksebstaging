@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { signUp, confirmSignUp } from 'aws-amplify/auth'
+import { sendEmail } from '@/lib/api'
 import styles from './page.module.css'
 
 const countries = ['United States','United Kingdom','Canada','Australia','Ethiopia','Nigeria','Kenya','Ghana','South Africa','Germany','France','Spain','UAE','India','Other']
@@ -47,6 +48,17 @@ export default function SignupPage() {
     setLoading(true)
     try {
       await confirmSignUp({ username: form.email, confirmationCode: code })
+      // Send welcome email to user + admin alert
+      try {
+        await sendEmail('USER_SIGNUP', {
+          email: form.email,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          country: form.country,
+        })
+      } catch (emailErr) {
+        console.error('Email failed:', emailErr)
+      }
       window.location.href = '/onboarding'
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please try again.')
