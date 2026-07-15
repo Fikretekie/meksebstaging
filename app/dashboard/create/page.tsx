@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { fetchUserAttributes } from 'aws-amplify/auth'
-import { createCircle } from '@/lib/api'
+import { createCircle, sendEmail } from '@/lib/api'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
 
@@ -29,6 +29,18 @@ export default function CreatePage(){
         description: form.desc,
         createdBy: userId,
       })
+      // Send circle created email to admin
+      try {
+        await sendEmail('CIRCLE_CREATED', {
+          name: form.name,
+          amount: parseFloat(form.amount) || 0,
+          currency: form.currency,
+          goal: form.goal,
+          createdBy: userId,
+        })
+      } catch (emailErr) {
+        console.error('Email failed:', emailErr)
+      }
       window.location.href = '/dashboard/groups/'
     } catch (err: any) {
       setError(err.message || 'Failed to create circle. Please try again.')
