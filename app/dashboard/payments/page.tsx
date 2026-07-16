@@ -28,17 +28,14 @@ export default function PaymentsPage(){
         const attributes = await fetchUserAttributes()
         const userId = attributes.sub || ''
 
-        // Load circles
         const data = await getCircles(userId)
         if (data.circles) {
           setCircles(data.circles)
 
-          // Calculate next due amount (sum of all monthly contributions)
           const monthlyTotal = data.circles.reduce((sum: number, c: any) =>
             sum + parseFloat(c.amount || '0'), 0)
           setNextDue(monthlyTotal)
 
-          // Load payments for each circle
           const allPayments: any[] = []
           for (const circle of data.circles) {
             try {
@@ -58,11 +55,9 @@ export default function PaymentsPage(){
             }
           }
 
-          // Sort by date descending
           allPayments.sort((a, b) => new Date(b.paidAt || b.createdAt).getTime() - new Date(a.paidAt || a.createdAt).getTime())
           setPayments(allPayments)
 
-          // Calculate totals
           const paid = allPayments.filter(p => p.status === 'paid').reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0)
           const pending = allPayments.filter(p => p.status === 'pending').reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0)
           setTotalPaid(paid)
@@ -77,7 +72,6 @@ export default function PaymentsPage(){
     loadData()
   }, [])
 
-  // Get next due date (1st of next month)
   const now = new Date()
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const nextDueDate = nextMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -97,13 +91,47 @@ export default function PaymentsPage(){
             <MetricCard color="purple" label="📅 Next due"    value={nextDueDate} note={`$${nextDue.toLocaleString()} total`} noteType="neutral"/>
           </div>
 
+          {/* Pay now buttons */}
+          {circles.length > 0 && (
+            <div className={styles.card} style={{marginBottom:'1.5rem'}}>
+              <div className={styles.cardH}>
+                <span className={styles.cardT}>💳 Pay monthly contribution</span>
+              </div>
+              <div style={{padding:'1rem 1.5rem'}}>
+                <div style={{fontSize:'13px',color:'rgba(255,255,255,.5)',marginBottom:'0.75rem'}}>
+                  Select a circle to make your monthly payment:
+                </div>
+                <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                  {circles.map((c: any) => (
+                    
+                      key={c.circleId}
+                      href={`/dashboard/pay/?circleId=${c.circleId}`}
+                      style={{
+                        display:'inline-block',
+                        background:'linear-gradient(135deg,#2563eb,#1d4ed8)',
+                        color:'white',
+                        padding:'10px 18px',
+                        borderRadius:'8px',
+                        textDecoration:'none',
+                        fontSize:'13px',
+                        fontWeight:600,
+                      }}
+                    >
+                      💳 Pay ${c.amount} — {c.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className={styles.card}>
             <div className={styles.cardH}>
               <span className={styles.cardT}>Transaction history</span>
             </div>
             {payments.length === 0 ? (
               <div style={{padding:'2rem',color:'rgba(255,255,255,.5)',textAlign:'center'}}>
-                No payments yet. Payments will appear here once you start contributing to circles.
+                No payments yet. Use the Pay button above to make your first contribution!
               </div>
             ) : (
               <div className={styles.tw}>
@@ -133,7 +161,6 @@ export default function PaymentsPage(){
             )}
           </div>
 
-          {/* Circles with no payments yet */}
           {circles.length > 0 && payments.length === 0 && (
             <div className={styles.card}>
               <div className={styles.cardH}>
@@ -146,7 +173,7 @@ export default function PaymentsPage(){
                       <th>Circle</th>
                       <th>Monthly amount</th>
                       <th>Currency</th>
-                      <th>Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -155,7 +182,19 @@ export default function PaymentsPage(){
                         <td style={{fontWeight:600}}>{c.name}</td>
                         <td style={{color:'#34d399',fontWeight:600}}>${c.amount}/mo</td>
                         <td className={styles.muted}>{c.currency}</td>
-                        <td><span className={`${styles.stb} ${styles.ok}`}>Active</span></td>
+                        <td>
+                          
+                            href={`/dashboard/pay/?circleId=${c.circleId}`}
+                            style={{
+                              color:'#60a5fa',
+                              fontSize:'13px',
+                              textDecoration:'none',
+                              fontWeight:600,
+                            }}
+                          >
+                            Pay now →
+                          </a>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
