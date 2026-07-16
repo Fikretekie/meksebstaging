@@ -1,6 +1,5 @@
 'use client'
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Nav from '@/components/landing/Nav'
 import Hero from '@/components/landing/Hero'
 import Features from '@/components/landing/Features'
@@ -11,14 +10,13 @@ import CTA from '@/components/landing/CTA'
 import Footer from '@/components/landing/Footer'
 
 export default function Home() {
-  const router = useRouter()
-
   useEffect(() => {
     const path = window.location.pathname
+    const search = window.location.search
     if (path !== '/' && path !== '') {
-      router.replace(path)
+      window.location.href = path + search
     }
-  }, [router])
+  }, [])
 
   return (
     <main>
