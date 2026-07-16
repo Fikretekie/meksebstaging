@@ -1,61 +1,150 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getCircles } from '@/lib/api'
 import MetricCard from '@/components/dashboard/MetricCard'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
-const months = [
-  {l:'Jan',v:'$1.2k',h:52,c:'#3b82f6,#1d4ed8'},{l:'Feb',v:'$1.2k',h:52,c:'#3b82f6,#1d4ed8'},
-  {l:'Mar',v:'$1.5k',h:65,c:'#06b6d4,#0891b2'},{l:'Apr',v:'$1.5k',h:65,c:'#06b6d4,#0891b2'},
-  {l:'May',v:'$1.7k',h:75,c:'#8b5cf6,#6d28d9'},{l:'Jun',v:'$1.8k',h:82,c:'#10b981,#059669'},
-  {l:'Jul',v:'—',h:7,c:'rgba(255,255,255,.08),rgba(255,255,255,.08)'},{l:'Aug',v:'—',h:7,c:'rgba(255,255,255,.08),rgba(255,255,255,.08)'},
-  {l:'Sep',v:'—',h:7,c:'rgba(255,255,255,.08),rgba(255,255,255,.08)'},{l:'Oct',v:'—',h:7,c:'rgba(255,255,255,.08),rgba(255,255,255,.08)'},
-  {l:'Nov',v:'—',h:7,c:'rgba(255,255,255,.08),rgba(255,255,255,.08)'},{l:'Dec',v:'—',h:7,c:'rgba(255,255,255,.08),rgba(255,255,255,.08)'},
+
+const barColors = [
+  '#2563eb,#06b6d4',
+  '#10b981,#34d399',
+  '#8b5cf6,#ec4899',
+  '#f59e0b,#ef4444',
+  '#06b6d4,#2563eb',
 ]
-const circles=[
-  {n:'Family Fund',contrib:'$200/mo',total:'$7,200',color:'#60a5fa',pct:60,bar:'#2563eb,#06b6d4'},
-  {n:'Work Circle',contrib:'$100/mo',total:'$4,200',color:'#34d399',pct:42,bar:'#10b981,#34d399'},
-  {n:'Invest Club',contrib:'$500/mo',total:'$3,400',color:'#a78bfa',pct:34,bar:'#8b5cf6,#ec4899'},
-]
+
+const circleColors = ['#60a5fa', '#34d399', '#a78bfa', '#fbbf24', '#06b6d4']
+
 export default function SavingsPage() {
+  const [circles, setCircles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [totalSaved, setTotalSaved] = useState(0)
+  const [thisMonth, setThisMonth] = useState(0)
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const attributes = await fetchUserAttributes()
+        const userId = attributes.sub || ''
+        const data = await getCircles(userId)
+        if (data.circles) {
+          setCircles(data.circles)
+          const total = data.circles.reduce((sum: number, c: any) =>
+            sum + parseFloat(c.totalSaved || '0'), 0)
+          setTotalSaved(total)
+          const monthly = data.circles.reduce((sum: number, c: any) =>
+            sum + parseFloat(c.amount || '0'), 0)
+          setThisMonth(monthly)
+        }
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
+
+  // Build monthly chart — show current month contributions
+  const currentMonth = new Date().toLocaleString('default', { month: 'short' })
+  const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const currentMonthIndex = new Date().getMonth()
+
+  const months = allMonths.map((l, i) => {
+    if (i === currentMonthIndex) {
+      const pct = thisMonth > 0 ? Math.min(Math.round((thisMonth / 5000) * 100), 95) : 7
+      return { l, v: `$${thisMonth.toLocaleString()}`, h: pct, c: '#10b981,#059669' }
+    }
+    return { l, v: '—', h: 7, c: 'rgba(255,255,255,.08),rgba(255,255,255,.08)' }
+  })
+
   return (
     <div>
       <PageHeader title="Savings overview" sub="Cumulative savings across all your circles." />
-      <div className={styles.metrics}>
-        <MetricCard color="blue"   label="📈 All time"    value="$14,800" note="Since Jan 2025" noteType="neutral" />
-        <MetricCard color="green"  label="📅 This year"   value="$10,800" note="↑ On track" />
-        <MetricCard color="gold"   label="📆 This month"  value="$1,800"  note="3 circles" noteType="neutral" />
-        <MetricCard color="purple" label="🎯 Annual goal" value="$24,000" note="By Dec 2026" noteType="neutral" />
-      </div>
-      <div className={styles.card}>
-        <div className={styles.cardH}><span className={styles.cardT}>Monthly contributions — 2026</span></div>
-        <div className={styles.chartPad}>
-          <div className={styles.bars}>
-            {months.map(m=>(
-              <div key={m.l} className={styles.bw}>
-                <div className={styles.bv}>{m.v}</div>
-                <div className={styles.bar} style={{height:`${m.h}%`,background:`linear-gradient(180deg,${m.c})`}} />
-                <div className={styles.bl}>{m.l}</div>
-              </div>
-            ))}
+
+      {loading ? (
+        <div style={{color:'rgba(255,255,255,.5)',padding:'2rem'}}>Loading...</div>
+      ) : (
+        <>
+          <div className={styles.metrics}>
+            <MetricCard color="blue"   label="📈 Total saved"   value={`$${totalSaved.toLocaleString()}`} note="Across all circles" noteType="neutral" />
+            <MetricCard color="green"  label="📅 Monthly contributions" value={`$${thisMonth.toLocaleString()}`} note={`${circles.length} active circle${circles.length !== 1 ? 's' : ''}`} />
+            <MetricCard color="gold"   label="✦ Total circles"  value={String(circles.length)} note="Active" noteType="neutral" />
+            <MetricCard color="purple" label="🎯 Monthly goal"  value={`$${thisMonth.toLocaleString()}`} note="Per month" noteType="neutral" />
           </div>
-        </div>
-      </div>
-      <div className={styles.card}>
-        <div className={styles.cardH}><span className={styles.cardT}>Breakdown by circle</span></div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>Circle</th><th>Your contribution</th><th>Group total</th><th>Progress</th></tr></thead>
-            <tbody>
-              {circles.map(c=>(
-                <tr key={c.n}>
-                  <td style={{fontWeight:600}}>{c.n}</td>
-                  <td className={styles.muted}>{c.contrib}</td>
-                  <td style={{color:c.color,fontWeight:600}}>{c.total}</td>
-                  <td><div className={styles.progRow}><div className={styles.progBar}><div className={styles.progFill} style={{width:`${c.pct}%`,background:`linear-gradient(90deg,${c.bar})`}}/></div><span className={styles.pct}>{c.pct}%</span></div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardH}>
+              <span className={styles.cardT}>Monthly contributions — {new Date().getFullYear()}</span>
+            </div>
+            <div className={styles.chartPad}>
+              <div className={styles.bars}>
+                {months.map(m => (
+                  <div key={m.l} className={styles.bw}>
+                    <div className={styles.bv}>{m.v}</div>
+                    <div className={styles.bar} style={{height:`${m.h}%`, background:`linear-gradient(180deg,${m.c})`}} />
+                    <div className={styles.bl}>{m.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardH}>
+              <span className={styles.cardT}>Breakdown by circle</span>
+            </div>
+            {circles.length === 0 ? (
+              <div style={{padding:'2rem',color:'rgba(255,255,255,.5)',textAlign:'center'}}>
+                No circles yet. <a href="/dashboard/create/" style={{color:'#60a5fa'}}>Create your first circle →</a>
+              </div>
+            ) : (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Circle</th>
+                      <th>Monthly contribution</th>
+                      <th>Total saved</th>
+                      <th>Goal</th>
+                      <th>Progress</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {circles.map((c, i) => {
+                      const saved = parseFloat(c.totalSaved || '0')
+                      const goal = 10000
+                      const pct = Math.min(Math.round((saved / goal) * 100), 100)
+                      return (
+                        <tr key={c.circleId}>
+                          <td style={{fontWeight:600}}>{c.name}</td>
+                          <td className={styles.muted}>${c.amount}/mo</td>
+                          <td style={{color: circleColors[i % 5], fontWeight:600}}>
+                            ${saved.toLocaleString()}
+                          </td>
+                          <td className={styles.muted}>{c.goal || '—'}</td>
+                          <td>
+                            <div className={styles.progRow}>
+                              <div className={styles.progBar}>
+                                <div className={styles.progFill} style={{
+                                  width:`${pct}%`,
+                                  background:`linear-gradient(90deg,${barColors[i % 5]})`
+                                }}/>
+                              </div>
+                              <span className={styles.pct}>{pct}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
