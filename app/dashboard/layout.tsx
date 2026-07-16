@@ -12,9 +12,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userEmail, setUserEmail] = useState('')
   const [initials, setInitials] = useState('...')
   const [circleCount, setCircleCount] = useState(0)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    const loadUser = async () => {
+    const loadUser = async (retryCount = 0) => {
       try {
         const attributes = await fetchUserAttributes()
         const email = attributes.email || ''
@@ -22,15 +23,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const name = email.split('@')[0]
         setUserName(name)
         setInitials(name.slice(0, 2).toUpperCase())
+        setAuthChecked(true)
 
-        // Load real circle count
         const userId = attributes.sub || ''
         const data = await getCircles(userId)
         if (data.circles) {
           setCircleCount(data.circles.length)
         }
       } catch (err) {
-        window.location.href = '/auth/login/'
+        // Retry up to 3 times before redirecting
+        if (retryCount < 3) {
+          setTimeout(() => loadUser(retryCount + 1), 1000)
+        } else {
+          window.location.href = '/auth/login/'
+        }
       }
     }
     loadUser()

@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       try { await signOut() } catch(e) {}
       await signIn({ username: email, password })
-      window.location.href = 'https://staging.mekseb.com/dashboard/'
+      window.location.href = '/dashboard/'
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.')
       setLoading(false)
