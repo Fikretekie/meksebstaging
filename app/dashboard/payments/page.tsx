@@ -14,6 +14,29 @@ const sm: Record<string,{l:string;c:string}> = {
   late:{l:'✗ Late',c:'late'}
 }
 
+const btnStyle = {
+  display:'inline-block' as const,
+  background:'linear-gradient(135deg,#2563eb,#1d4ed8)',
+  color:'white',
+  padding:'10px 18px',
+  borderRadius:'8px',
+  textDecoration:'none' as const,
+  fontSize:'13px',
+  fontWeight:600,
+  cursor:'pointer' as const,
+  border:'none' as const,
+}
+
+const linkStyle = {
+  color:'#60a5fa',
+  fontSize:'13px',
+  textDecoration:'none' as const,
+  fontWeight:600,
+  cursor:'pointer' as const,
+  background:'none' as const,
+  border:'none' as const,
+}
+
 export default function PaymentsPage(){
   const [circles, setCircles] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
@@ -76,6 +99,10 @@ export default function PaymentsPage(){
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const nextDueDate = nextMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
+  const goToPay = (circleId: string) => {
+    window.location.href = `/dashboard/pay/?circleId=${circleId}`
+  }
+
   return(
     <div>
       <PageHeader title="Payments" sub="Full transaction history across all circles." />
@@ -103,22 +130,13 @@ export default function PaymentsPage(){
                 </div>
                 <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
                   {circles.map((c: any) => (
-                    
+                    <button
                       key={c.circleId}
-                      href={`/dashboard/pay/?circleId=${c.circleId}`}
-                      style={{
-                        display:'inline-block',
-                        background:'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                        color:'white',
-                        padding:'10px 18px',
-                        borderRadius:'8px',
-                        textDecoration:'none',
-                        fontSize:'13px',
-                        fontWeight:600,
-                      }}
+                      onClick={() => goToPay(c.circleId)}
+                      style={btnStyle}
                     >
                       💳 Pay ${c.amount} — {c.name}
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -183,17 +201,9 @@ export default function PaymentsPage(){
                         <td style={{color:'#34d399',fontWeight:600}}>${c.amount}/mo</td>
                         <td className={styles.muted}>{c.currency}</td>
                         <td>
-                          
-                            href={`/dashboard/pay/?circleId=${c.circleId}`}
-                            style={{
-                              color:'#60a5fa',
-                              fontSize:'13px',
-                              textDecoration:'none',
-                              fontWeight:600,
-                            }}
-                          >
+                          <button onClick={() => goToPay(c.circleId)} style={linkStyle}>
                             Pay now →
-                          </a>
+                          </button>
                         </td>
                       </tr>
                     ))}
