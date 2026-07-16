@@ -1,44 +1,83 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { fetchUserAttributes } from 'aws-amplify/auth'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
-const people=[
-  {i:'AM',bg:'linear-gradient(135deg,#8b5cf6,#ec4899)',name:'Aisha M.', loc:'London, UK',   vision:"Looking to build a 6-person circle focused on property investment. Long-term, reliable members only.",   tags:['Real estate','$300/mo','Long-term'],   mo:'$300',mem:'6',hor:'3yr'},
-  {i:'CL',bg:'linear-gradient(135deg,#10b981,#06b6d4)',name:'Carlos L.',loc:'Miami, FL',     vision:'Building an emergency fund circle. Stable income and serious commitment required.',                       tags:['Emergency fund','$150/mo','Conservative'],mo:'$150',mem:'5',hor:'2yr'},
-  {i:'NK',bg:'linear-gradient(135deg,#f59e0b,#ef4444)',name:'Nina K.',  loc:'Toronto, CA',  vision:'MBA student building an education fund circle. Open to students and early-career professionals.',          tags:['Education','$100/mo','Students ok'],   mo:'$100',mem:'8',hor:'1.5yr'},
-  {i:'PO',bg:'linear-gradient(135deg,#06b6d4,#2563eb)',name:'Peter O.', loc:'Lagos, NG',    vision:'Tech entrepreneur building a high-contribution investment club targeting startup equity.',                  tags:['Startup fund','$1k/mo','High conviction'],mo:'$1,000',mem:'4',hor:'5yr'},
-  {i:'SR',bg:'linear-gradient(135deg,#ec4899,#8b5cf6)',name:'Sofia R.', loc:'Barcelona, ES',vision:'Travel fund circle — saving toward an annual group trip. Fun, social, flexible.',                         tags:['Travel','$75/mo','Social'],            mo:'$75',mem:'10',hor:'1yr'},
-  {i:'DM',bg:'linear-gradient(135deg,#2563eb,#06b6d4)',name:'David M.', loc:'Nairobi, KE',  vision:'Accountant building a long-term retirement savings circle. Financially stable members only.',             tags:['Retirement','$250/mo','Long-term'],    mo:'$250',mem:'5',hor:'10yr'},
-]
-const goalTags=['All goals','Real estate','Emergency fund','Investment club','Education','Startup fund','Travel','Retirement']
-export default function NetworkPage(){
-  const [active,setActive]=useState('All goals')
-  return(
+
+export default function NetworkPage() {
+  const [userName, setUserName] = useState('')
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const attributes = await fetchUserAttributes()
+        const email = attributes.email || ''
+        setUserName(email.split('@')[0])
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    loadUser()
+  }, [])
+
+  return (
     <div>
       <PageHeader title="Community network" sub="Find people who share your savings vision and build a circle together." />
-      <div className={styles.banner}>
-        <div><div className={styles.bannerTitle}>Your network profile is live</div><div className={styles.bannerSub}>12 people viewed your profile this week.</div></div>
-        <button className={styles.btnPrimary}>Edit profile</button>
-      </div>
-      <div className={styles.searchRow}>
-        <input className={styles.searchInput} type="text" placeholder="Search by name, goal, or location..." />
-        <button className={styles.btnPrimary}>Search</button>
-      </div>
-      <div className={styles.tagRow}>{goalTags.map(t=><button key={t} className={`${styles.tag} ${active===t?styles.tagOn:''}`} onClick={()=>setActive(t)}>{t}</button>)}</div>
-      <div className={styles.grid}>
-        {people.map(p=>(
-          <div key={p.name} className={styles.pc}>
-            <div className={styles.pcHead}><div className={styles.av} style={{background:p.bg}}>{p.i}</div><div><div className={styles.pcName}>{p.name}</div><div className={styles.pcLoc}>📍 {p.loc} · ✓ Verified</div></div></div>
-            <p className={styles.pcVision}>{p.vision}</p>
-            <div className={styles.pcTags}>{p.tags.map(t=><span key={t} className={styles.pcTag}>{t}</span>)}</div>
-            <div className={styles.pcNums}>
-              <div><div className={styles.nv}>{p.mo}</div><div className={styles.nl}>Monthly</div></div>
-              <div><div className={styles.nv}>{p.mem}</div><div className={styles.nl}>Members</div></div>
-              <div><div className={styles.nv}>{p.hor}</div><div className={styles.nl}>Horizon</div></div>
+
+      {/* Coming Soon */}
+      <div style={{
+        textAlign: 'center',
+        padding: '4rem 2rem',
+        background: 'rgba(255,255,255,.03)',
+        border: '1px solid rgba(255,255,255,.08)',
+        borderRadius: '16px',
+        marginTop: '2rem',
+      }}>
+        <div style={{fontSize:'4rem',marginBottom:'1rem'}}>🌐</div>
+        <div style={{fontSize:'1.5rem',fontWeight:700,color:'white',marginBottom:'0.5rem'}}>
+          Network coming soon
+        </div>
+        <div style={{fontSize:'14px',color:'rgba(255,255,255,.5)',maxWidth:'400px',margin:'0 auto 2rem',lineHeight:1.7}}>
+          As more members join Mekseb, you'll be able to discover other savers, connect with people who share your vision, and build circles together.
+        </div>
+        <div style={{
+          display:'flex',
+          justifyContent:'center',
+          gap:'2rem',
+          marginBottom:'2rem',
+          flexWrap:'wrap',
+        }}>
+          {[
+            {icon:'👥', label:'Find circle members'},
+            {icon:'🎯', label:'Match by savings goal'},
+            {icon:'🌍', label:'Connect globally'},
+            {icon:'✅', label:'Verified profiles'},
+          ].map(f => (
+            <div key={f.label} style={{
+              background:'rgba(37,99,235,.1)',
+              border:'1px solid rgba(37,99,235,.2)',
+              borderRadius:'12px',
+              padding:'1rem 1.5rem',
+              color:'#93c5fd',
+              fontSize:'13px',
+              textAlign:'center',
+            }}>
+              <div style={{fontSize:'1.5rem',marginBottom:'0.5rem'}}>{f.icon}</div>
+              {f.label}
             </div>
-            <button className={styles.cb}>Connect with {p.name.split(' ')[0]} →</button>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div style={{
+          background:'rgba(16,185,129,.1)',
+          border:'1px solid rgba(16,185,129,.2)',
+          borderRadius:'10px',
+          padding:'12px 20px',
+          color:'#34d399',
+          fontSize:'13px',
+          display:'inline-block',
+        }}>
+          🎉 You're one of the early members, {userName}! Invite friends to grow the network.
+        </div>
       </div>
     </div>
   )
