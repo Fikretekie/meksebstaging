@@ -16,7 +16,7 @@ export default function Home() {
     if (redirected.current) return
     const path = window.location.pathname
     const search = window.location.search
-    if (path !== '/' && path !== '') {
+    if (path !== '/' && path !== '' && !path.startsWith('/auth')) {
       redirected.current = true
       window.location.replace(path + search)
     }
