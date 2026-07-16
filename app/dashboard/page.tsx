@@ -1,26 +1,18 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getCurrentUser } from 'aws-amplify/auth'
+import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getCircles } from '@/lib/api'
 import MetricCard from '@/components/dashboard/MetricCard'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
 
-const payments = [
-  { name:'James R. (You)', initials:'JR', color:'blue',   circle:'Family Fund',  amount:'$200', due:'Jun 1', status:'paid' },
-  { name:'Sarah M.',       initials:'SM', color:'purple', circle:'Family Fund',  amount:'$200', due:'Jun 1', status:'paid' },
-  { name:'Tom K.',         initials:'TK', color:'green',  circle:'Work Circle',  amount:'$100', due:'Jun 5', status:'pending' },
-  { name:'Lisa E.',        initials:'LE', color:'gold',   circle:'Invest Club',  amount:'$500', due:'Jun 1', status:'paid' },
-  { name:'Rachel B.',      initials:'RB', color:'pink',   circle:'Family Fund',  amount:'$200', due:'Jun 1', status:'late' },
-  { name:'Mike W.',        initials:'MW', color:'cyan',   circle:'Work Circle',  amount:'$100', due:'Jun 5', status:'paid' },
+const avColors = [
+  'linear-gradient(135deg,#2563eb,#06b6d4)',
+  'linear-gradient(135deg,#8b5cf6,#ec4899)',
+  'linear-gradient(135deg,#10b981,#06b6d4)',
+  'linear-gradient(135deg,#f59e0b,#ef4444)',
+  'linear-gradient(135deg,#ec4899,#8b5cf6)',
 ]
-const avBg: Record<string,string> = {
-  blue:'linear-gradient(135deg,#2563eb,#06b6d4)', purple:'linear-gradient(135deg,#8b5cf6,#ec4899)',
-  green:'linear-gradient(135deg,#10b981,#06b6d4)', gold:'linear-gradient(135deg,#f59e0b,#ef4444)',
-  pink:'linear-gradient(135deg,#ec4899,#8b5cf6)', cyan:'linear-gradient(135deg,#06b6d4,#2563eb)',
-}
-const statusMap: Record<string,{label:string;cls:string}> = {
-  paid:{label:'✓ Paid',cls:'ok'}, pending:{label:'⏳ Pending',cls:'pend'}, late:{label:'✗ Late',cls:'late'}
-}
 
 function getGreeting() {
   const hour = new Date().getHours()
@@ -29,56 +21,105 @@ function getGreeting() {
   return 'Good evening'
 }
 
+function getInitials(name: string) {
+  return name.slice(0, 2).toUpperCase()
+}
+
 export default function DashboardPage() {
   const [userName, setUserName] = useState('there')
+  const [circles, setCircles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [totalSaved, setTotalSaved] = useState(0)
 
   useEffect(() => {
-    const loadUser = async () => {
+    const loadData = async () => {
       try {
-        const user = await getCurrentUser()
-        const email = user.signInDetails?.loginId || ''
+        const attributes = await fetchUserAttributes()
+        const email = attributes.email || ''
         const name = email.split('@')[0]
         setUserName(name)
+
+        const userId = attributes.sub || ''
+        const data = await getCircles(userId)
+        if (data.circles) {
+          setCircles(data.circles)
+          const total = data.circles.reduce((sum: number, c: any) => sum + parseFloat(c.totalSaved || '0'), 0)
+          setTotalSaved(total)
+        }
       } catch (err) {
         console.error(err)
+      } finally {
+        setLoading(false)
       }
     }
-    loadUser()
+    loadData()
   }, [])
 
   return (
     <div>
-      <PageHeader 
-        title={`${getGreeting()}, ${userName} 👋`} 
-        sub="Your savings snapshot." 
-        btnLabel="+ New circle" 
-        btnHref="/dashboard/create/" 
+      <PageHeader
+        title={`${getGreeting()}, ${userName} 👋`}
+        sub="Your savings snapshot."
+        btnLabel="+ New circle"
+        btnHref="/dashboard/create/"
       />
       <div className={styles.metrics}>
-        <MetricCard color="blue"   label="💰 Total saved"   value="$14,800" note="↑ +$1,800 this month" />
-        <MetricCard color="gold"   label="🏦 Active circles" value="3"       note="14 members total" noteType="neutral" />
-        <MetricCard color="green"  label="✅ On-time rate"  value="96%"     note="↑ Up from 91%" />
-        <MetricCard color="purple" label="📬 Late payments"  value="2"       note="Action needed" noteType="down" />
-        <MetricCard color="cyan"   label="🌐 Network rank"  value="Top 8%"  note="Most trusted saver" />
+        <MetricCard color="blue"   label="💰 Total saved"   value={`$${totalSaved.toLocaleString()}`} note="Across all your circles" />
+        <MetricCard color="gold"   label="🏦 Active circles" value={String(circles.length)} note={`${circles.length} circle${circles.length !== 1 ? 's' : ''} active`} noteType="neutral" />
+        <MetricCard color="green"  label="✅ On-time rate"  value="—"     note="Coming soon" />
+        <MetricCard color="purple" label="📬 Late payments"  value="—"       note="Coming soon" noteType="down" />
+        <MetricCard color="cyan"   label="🌐 Network rank"  value="—"  note="Coming soon" />
       </div>
+
       <div className={styles.card}>
-        <div className={styles.cardH}><span className={styles.cardT}>Payment status</span><button className={styles.btnGhost}>Send reminders</button></div>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead><tr><th>Member</th><th>Circle</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
-            <tbody>
-              {payments.map(p=>(
-                <tr key={p.name}>
-                  <td><div className={styles.member}><div className={styles.av} style={{background:avBg[p.color]}}>{p.initials}</div>{p.name}</div></td>
-                  <td className={styles.muted}>{p.circle}</td>
-                  <td className={styles.bold}>{p.amount}</td>
-                  <td className={styles.muted}>{p.due}</td>
-                  <td><span className={`${styles.stb} ${styles[statusMap[p.status].cls]}`}>{statusMap[p.status].label}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={styles.cardH}>
+          <span className={styles.cardT}>My circles</span>
         </div>
+        {loading ? (
+          <div style={{padding:'2rem',color:'rgba(255,255,255,.5)'}}>Loading...</div>
+        ) : circles.length === 0 ? (
+          <div style={{padding:'2rem',color:'rgba(255,255,255,.5)',textAlign:'center'}}>
+            No circles yet. <a href="/dashboard/create/" style={{color:'#60a5fa'}}>Create your first circle →</a>
+          </div>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Circle</th>
+                  <th>Monthly</th>
+                  <th>Currency</th>
+                  <th>Goal</th>
+                  <th>Total Saved</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {circles.map((c, i) => (
+                  <tr key={c.circleId}>
+                    <td>
+                      <div className={styles.member}>
+                        <div className={styles.av} style={{background: avColors[i % 5]}}>
+                          {getInitials(c.name || 'C')}
+                        </div>
+                        {c.name}
+                      </div>
+                    </td>
+                    <td className={styles.bold}>${c.amount}/mo</td>
+                    <td className={styles.muted}>{c.currency}</td>
+                    <td className={styles.muted}>{c.goal || '—'}</td>
+                    <td className={styles.bold}>${parseFloat(c.totalSaved || '0').toLocaleString()}</td>
+                    <td>
+                      <span className={`${styles.stb} ${styles.ok}`}>
+                        {c.status || 'active'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )
