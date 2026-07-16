@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useRef } from 'react'
 import Nav from '@/components/landing/Nav'
 import Hero from '@/components/landing/Hero'
 import Features from '@/components/landing/Features'
@@ -10,18 +9,6 @@ import CTA from '@/components/landing/CTA'
 import Footer from '@/components/landing/Footer'
 
 export default function Home() {
-  const redirected = useRef(false)
-
-  useEffect(() => {
-    if (redirected.current) return
-    const path = window.location.pathname
-    const search = window.location.search
-    if (path !== '/' && path !== '' && !path.startsWith('/auth')) {
-      redirected.current = true
-      window.location.replace(path + search)
-    }
-  }, [])
-
   return (
     <main>
       <Nav />
