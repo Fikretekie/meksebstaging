@@ -100,7 +100,7 @@ export default function PaymentsPage(){
   const nextDueDate = nextMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
   const goToPay = (circleId: string) => {
-    window.location.href = `/dashboard/pay/?circleId=${circleId}`
+    window.location.href = `/dashboard/pay/index.html?circleId=${circleId}`
   }
 
   return(
