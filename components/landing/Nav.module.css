@@ -162,7 +162,7 @@
 
 @media (max-width: 768px) {
   .inner { padding: 0 1rem; }
-  .links { display: none; }
-  .cta { display: none; }
-  .mobileMenu { display: flex; }
+  .links { display: none !important; }
+  .cta { display: none !important; }
+  .mobileMenu { display: flex !important; }
 }
