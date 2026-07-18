@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [userEmail, setUserEmail] = useState('')
   const [initials, setInitials] = useState('...')
   const [circleCount, setCircleCount] = useState(0)
-  const [authChecked, setAuthChecked] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     const loadUser = async (retryCount = 0) => {
@@ -23,7 +23,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const name = email.split('@')[0]
         setUserName(name)
         setInitials(name.slice(0, 2).toUpperCase())
-        setAuthChecked(true)
 
         const userId = attributes.sub || ''
         const data = await getCircles(userId)
@@ -31,7 +30,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setCircleCount(data.circles.length)
         }
       } catch (err) {
-        // Retry up to 3 times before redirecting
         if (retryCount < 3) {
           setTimeout(() => loadUser(retryCount + 1), 1000)
         } else {
@@ -53,41 +51,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const nav = [
     { group:'Overview', items:[
-      { href:'/dashboard/', label:'Dashboard', icon:'⊞' },
-      { href:'/dashboard/savings/', label:'Savings', icon:'💰' },
-      { href:'/dashboard/groups/', label:'My circles', icon:'👥', badge: circleCount > 0 ? String(circleCount) : null },
-      { href:'/dashboard/payments/', label:'Payments', icon:'💳' },
+      { href:'/dashboard/index.html', label:'Dashboard', icon:'⊞' },
+      { href:'/dashboard/savings/index.html', label:'Savings', icon:'💰' },
+      { href:'/dashboard/groups/index.html', label:'My circles', icon:'👥', badge: circleCount > 0 ? String(circleCount) : null },
+      { href:'/dashboard/payments/index.html', label:'Payments', icon:'💳' },
     ]},
     { group:'Community', items:[
-      { href:'/dashboard/network/', label:'Network', icon:'🌐' },
-      { href:'/dashboard/requests/', label:'Join requests', icon:'📬' },
-      { href:'/dashboard/notifications/', label:'Alerts', icon:'🔔' },
+      { href:'/dashboard/network/index.html', label:'Network', icon:'🌐' },
+      { href:'/dashboard/requests/index.html', label:'Join requests', icon:'📬' },
+      { href:'/dashboard/notifications/index.html', label:'Alerts', icon:'🔔' },
     ]},
     { group:'Manage', items:[
-      { href:'/dashboard/create/', label:'Create circle', icon:'✦' },
-      { href:'/dashboard/policy/', label:'Group policy', icon:'📋' },
-      { href:'/dashboard/settings/', label:'Settings', icon:'⚙' },
+      { href:'/dashboard/create/index.html', label:'Create circle', icon:'✦' },
+      { href:'/dashboard/policy/index.html', label:'Group policy', icon:'📋' },
+      { href:'/dashboard/settings/index.html', label:'Settings', icon:'⚙' },
     ]},
   ]
 
   return (
     <div>
       <nav className={styles.nav}>
-        <Link href="/" className={styles.logo}>
-          <div className={styles.mark}>M</div>
-          <span className={styles.name}>Me<span>K</span>seb</span>
-        </Link>
+        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+          <button
+            className={styles.hamburger}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle menu"
+          >
+            <span/>
+            <span/>
+            <span/>
+          </button>
+          <Link href="/dashboard/index.html" className={styles.logo}>
+            <div className={styles.mark}>M</div>
+            <span className={styles.name}>Me<span>K</span>seb</span>
+          </Link>
+        </div>
         <div className={styles.navRight}>
           <div className={styles.userInfo}>
             <div className={styles.userName}>{userName}</div>
             <div className={styles.userEmail}>{userEmail}</div>
           </div>
-          <Link href="/dashboard/profile/" className={styles.avatar}>{initials}</Link>
+          <Link href="/dashboard/profile/index.html" className={styles.avatar}>{initials}</Link>
           <button onClick={handleSignOut} className={styles.btnGhost}>Sign out</button>
         </div>
       </nav>
+
+      <div
+        className={`${styles.overlay} ${sidebarOpen ? styles.overlayVisible : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
       <div className={styles.shell}>
-        <aside className={styles.sidebar}>
+        <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
           {nav.map(g => (
             <div key={g.group} className={styles.sbGroup}>
               <div className={styles.sbLabel}>{g.group}</div>
@@ -96,6 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   key={item.href}
                   href={item.href}
                   className={`${styles.si} ${path === item.href ? styles.siActive : ''}`}
+                  onClick={() => setSidebarOpen(false)}
                 >
                   <span className={styles.siIcon}>{item.icon}</span>
                   {item.label}
