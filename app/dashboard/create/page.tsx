@@ -41,7 +41,7 @@ export default function CreatePage(){
       } catch (emailErr) {
         console.error('Email failed:', emailErr)
       }
-      window.location.href = '/dashboard/groups/'
+      window.location.href = '/dashboard/groups/index.html'
     } catch (err: any) {
       setError(err.message || 'Failed to create circle. Please try again.')
       setLoading(false)

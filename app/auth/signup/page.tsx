@@ -59,7 +59,7 @@ export default function SignupPage() {
       } catch (emailErr) {
         console.error('Email failed:', emailErr)
       }
-      window.location.href = '/onboarding'
+      window.location.href = '/onboarding/index.html'
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please try again.')
       setLoading(false)

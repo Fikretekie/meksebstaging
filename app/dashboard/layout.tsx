@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (retryCount < 3) {
           setTimeout(() => loadUser(retryCount + 1), 1000)
         } else {
-          window.location.href = '/auth/login/'
+          window.location.href = '/auth/login/index.html'
         }
       }
     }
@@ -45,9 +45,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = async () => {
     try {
       await signOut()
-      window.location.href = '/auth/login/'
+      window.location.href = '/auth/login/index.html'
     } catch (err) {
-      window.location.href = '/auth/login/'
+      window.location.href = '/auth/login/index.html'
     }
   }
 

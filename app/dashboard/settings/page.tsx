@@ -36,7 +36,7 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     await signOut()
-    window.location.href = '/'
+    window.location.href = '/auth/login/index.html'
   }
 
   const fullName = [firstName, lastName].filter(Boolean).join(' ') || email.split('@')[0]
@@ -62,7 +62,7 @@ export default function SettingsPage() {
             <div className={styles.row}><span>Account status</span><span style={{color:'#34d399',fontSize:'13px',fontWeight:600}}>✓ Active</span></div>
             <div className={styles.row}><span>Member since</span><span className={styles.val}>{memberSince}</span></div>
             <button className={styles.btnGhost} style={{width:'100%',marginTop:'1.1rem'}}
-              onClick={() => window.location.href = '/dashboard/profile/'}>
+              onClick={() => window.location.href = '/dashboard/profile/index.html'}>
               Edit profile
             </button>
           </div>
