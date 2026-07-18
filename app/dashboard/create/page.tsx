@@ -29,7 +29,6 @@ export default function CreatePage(){
         description: form.desc,
         createdBy: userId,
       })
-      // Send circle created email to admin
       try {
         await sendEmail('CIRCLE_CREATED', {
           name: form.name,
@@ -41,7 +40,8 @@ export default function CreatePage(){
       } catch (emailErr) {
         console.error('Email failed:', emailErr)
       }
-      window.location.href = '/dashboard/groups/index.html'
+      // Use replace to avoid adding to history and preserve auth session
+      window.location.replace('/dashboard/groups/index.html')
     } catch (err: any) {
       setError(err.message || 'Failed to create circle. Please try again.')
       setLoading(false)
@@ -65,7 +65,7 @@ export default function CreatePage(){
           <div className={styles.fg}><label className={styles.label}>Circle name <span className={styles.req}>*</span></label><input className={styles.input} type="text" placeholder="e.g. Family Savings Fund" value={form.name} onChange={set('name')} /></div>
           <div className={styles.row}>
             <div className={styles.fg}><label className={styles.label}>Monthly contribution <span className={styles.req}>*</span></label><input className={styles.input} type="number" placeholder="100" value={form.amount} onChange={set('amount')} /></div>
-            <div className={styles.fg}><label className={styles.label}>Currency</label><select className={styles.select} value={form.currency} onChange={set('currency')}><option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>NGN</option><option>ETB</option></select></div>
+            <div className={styles.fg}><label className={styles.label}>Currency</label><select className={styles.select} value={form.currency} onChange={set('currency')}><option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>NGN</option><option>ETB</option><option>ERN</option></select></div>
           </div>
           <div className={styles.row}>
             <div className={styles.fg}><label className={styles.label}>Max members</label><input className={styles.input} type="number" placeholder="5" value={form.maxMembers} onChange={set('maxMembers')} /></div>
