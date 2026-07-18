@@ -1,140 +1,232 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { getCurrentUser } from 'aws-amplify/auth'
+import { useEffect, useState } from 'react'
+import { fetchUserAttributes } from 'aws-amplify/auth'
 import { createUser } from '@/lib/api'
 import styles from './page.module.css'
 
-const steps = ['Your profile', 'Your savings goal', 'Your first circle']
+const countries = ['United States','United Kingdom','Canada','Australia','Ethiopia','Eritrea','Nigeria','Kenya','Ghana','South Africa','Germany','France','Spain','UAE','India','Other']
+
+const goals = [
+  'Buy a home',
+  'Start a business',
+  'Emergency fund',
+  'Education fund',
+  'Retirement savings',
+  'Travel fund',
+  'Investment portfolio',
+  'Other',
+]
 
 export default function OnboardingPage() {
-  const router = useRouter()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState({ bio:'', goal:'', monthly:'', currency:'USD', intent:'create' })
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [country, setCountry] = useState('United States')
   const [loading, setLoading] = useState(false)
-  const set = (k:string) => (e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) => setForm(f=>({...f,[k]:e.target.value}))
+  const [prefilling, setPrefilling] = useState(true)
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    country: 'United States',
+    bio: '',
+    goal: '',
+    circleName: '',
+    amount: '',
+    currency: 'USD',
+  })
+  const [userId, setUserId] = useState('')
+  const [email, setEmail] = useState('')
 
-  const next = async () => {
-    if (step < steps.length - 1) {
-      setStep(s => s + 1)
-    } else {
-      setLoading(true)
+  useEffect(() => {
+    const prefill = async () => {
       try {
-        const user = await getCurrentUser()
-        await createUser({
-          userId: user.userId,
-          email: user.signInDetails?.loginId || '',
-          firstName,
-          lastName,
-          country,
-        })
-        router.push('/dashboard')
+        const attributes = await fetchUserAttributes()
+        setUserId(attributes.sub || '')
+        setEmail(attributes.email || '')
+        // Pre-fill name and country from signup
+        setForm(f => ({
+          ...f,
+          firstName: attributes.given_name || '',
+          lastName: attributes.family_name || '',
+        }))
       } catch (err) {
         console.error(err)
-        router.push('/dashboard')
       } finally {
-        setLoading(false)
+        setPrefilling(false)
       }
+    }
+    prefill()
+  }, [])
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const handleFinish = async () => {
+    setLoading(true)
+    try {
+      await createUser({
+        userId,
+        email,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        country: form.country,
+      })
+      window.location.href = '/dashboard/index.html'
+    } catch (err) {
+      console.error(err)
+      window.location.href = '/dashboard/index.html'
     }
   }
 
-  const back = () => setStep(s => s - 1)
+  if (prefilling) {
+    return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',color:'rgba(255,255,255,.5)'}}>
+        Loading your profile...
+      </div>
+    )
+  }
+
+  const steps = ['Your profile', 'Your savings goal', 'Your first circle']
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.o1}/><div className={styles.o2}/><div className={styles.grid}/>
-      <div className={styles.inner}>
-        <div className={styles.logo}><div className={styles.mark}>M</div><span className={styles.name}>Me<span>K</span>seb</span></div>
-        <div className={styles.card}>
-          <div className={styles.progress}>
-            {steps.map((s,i)=>(
-              <div key={s} className={styles.stepWrap}>
-                <div className={`${styles.stepDot} ${i<=step?styles.stepActive:''}`}>{i<step?'✓':(i+1)}</div>
-                <div className={`${styles.stepLabel} ${i===step?styles.stepLabelActive:''}`}>{s}</div>
-              </div>
-            ))}
+      <div className={styles.card}>
+        {/* Header */}
+        <div className={styles.header}>
+          <div className={styles.logo}>
+            <div className={styles.mark}>M</div>
+            <span className={styles.name}>Me<span>K</span>seb</span>
           </div>
-
-          {step===0 && (
-            <div className={styles.stepContent}>
-              <h2 className={styles.stepTitle}>Tell us about yourself</h2>
-              <p className={styles.stepSub}>This helps other members on the network find and trust you.</p>
-              <div className={styles.row}>
-                <div className={styles.field}>
-                  <label className={styles.label}>First name</label>
-                  <input className={styles.input} type="text" placeholder="James" value={firstName} onChange={e=>setFirstName(e.target.value)} />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label}>Last name</label>
-                  <input className={styles.input} type="text" placeholder="Richardson" value={lastName} onChange={e=>setLastName(e.target.value)} />
-                </div>
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>Country</label>
-                <select className={styles.select} value={country} onChange={e=>setCountry(e.target.value)}>
-                  {['United States','United Kingdom','Canada','Australia','Ethiopia','Nigeria','Kenya','Ghana','South Africa','Germany','France','Spain','UAE','India','Other'].map(c=><option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>Short bio</label>
-                <textarea className={styles.ta} rows={3} placeholder="e.g. Software engineer based in Houston." value={form.bio} onChange={set('bio')} />
-              </div>
-            </div>
-          )}
-
-          {step===1 && (
-            <div className={styles.stepContent}>
-              <h2 className={styles.stepTitle}>What are you saving for?</h2>
-              <p className={styles.stepSub}>Set your savings vision so others on the network can find people with matching goals.</p>
-              <div className={styles.goalGrid}>
-                {['Real estate','Emergency fund','Investment club','Education','Startup fund','Travel','Retirement','Other'].map(g=>(
-                  <button key={g} type="button" className={`${styles.goalBtn} ${form.goal===g?styles.goalActive:''}`} onClick={()=>setForm(f=>({...f,goal:g}))}>{g}</button>
-                ))}
-              </div>
-              <div className={styles.row}>
-                <div className={styles.field}>
-                  <label className={styles.label}>Monthly budget</label>
-                  <input className={styles.input} type="number" placeholder="e.g. 200" value={form.monthly} onChange={set('monthly')} />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label}>Currency</label>
-                  <select className={styles.select} value={form.currency} onChange={set('currency')}>
-                    <option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>NGN</option><option>ETB</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step===2 && (
-            <div className={styles.stepContent}>
-              <h2 className={styles.stepTitle}>How do you want to start?</h2>
-              <p className={styles.stepSub}>You can always do both later.</p>
-              <div className={styles.intentCards}>
-                <div className={`${styles.intentCard} ${form.intent==='create'?styles.intentActive:''}`} onClick={()=>setForm(f=>({...f,intent:'create'}))}>
-                  <div className={styles.intentIcon}>✦</div>
-                  <div className={styles.intentTitle}>Create a new circle</div>
-                  <div className={styles.intentDesc}>Start your own savings group and invite members you trust.</div>
-                </div>
-                <div className={`${styles.intentCard} ${form.intent==='join'?styles.intentActive:''}`} onClick={()=>setForm(f=>({...f,intent:'join'}))}>
-                  <div className={styles.intentIcon}>🌐</div>
-                  <div className={styles.intentTitle}>Browse the network</div>
-                  <div className={styles.intentDesc}>Find people with the same vision and join or form a circle together.</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className={styles.actions}>
-            {step>0 && <button className={styles.btnBack} type="button" onClick={back}>← Back</button>}
-            <button className={styles.btnNext} type="button" onClick={next} disabled={loading}>
-              {loading ? 'Saving...' : step===steps.length-1 ? 'Go to dashboard →' : 'Continue →'}
-            </button>
+          <div className={styles.stepIndicator}>
+            Step {step + 1} of {steps.length}
           </div>
         </div>
+
+        {/* Progress bar */}
+        <div className={styles.progress}>
+          <div className={styles.progressFill} style={{width:`${((step + 1) / steps.length) * 100}%`}}/>
+        </div>
+
+        {/* Step titles */}
+        <div className={styles.steps}>
+          {steps.map((s, i) => (
+            <div key={s} className={`${styles.stepItem} ${i === step ? styles.stepActive : ''} ${i < step ? styles.stepDone : ''}`}>
+              <div className={styles.stepNum}>{i < step ? '✓' : i + 1}</div>
+              <span>{s}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Step 0 — Profile */}
+        {step === 0 && (
+          <div className={styles.form}>
+            <h2 className={styles.stepTitle}>Tell us about yourself</h2>
+            <p className={styles.stepSub}>This helps other members on the network find and trust you.</p>
+
+            <div className={styles.row}>
+              <div className={styles.field}>
+                <label className={styles.label}>First name</label>
+                <input className={styles.input} type="text" value={form.firstName} onChange={set('firstName')} placeholder="James" />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Last name</label>
+                <input className={styles.input} type="text" value={form.lastName} onChange={set('lastName')} placeholder="Richardson" />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Country</label>
+              <select className={styles.select} value={form.country} onChange={set('country')}>
+                {countries.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Short bio <span style={{color:'rgba(255,255,255,.3)',fontWeight:400}}>(optional)</span></label>
+              <textarea className={styles.ta} rows={3} value={form.bio} onChange={set('bio')} placeholder="Tell the community a bit about yourself and your savings goals..." />
+            </div>
+
+            <div className={styles.infoCard}>
+              <div className={styles.infoTitle}>✅ Your info is pre-filled from signup</div>
+              <div className={styles.infoText}>We pulled your name from your account. Just confirm or update it.</div>
+            </div>
+
+            <button className={styles.btnNext} onClick={() => setStep(1)}>
+              Continue →
+            </button>
+          </div>
+        )}
+
+        {/* Step 1 — Savings goal */}
+        {step === 1 && (
+          <div className={styles.form}>
+            <h2 className={styles.stepTitle}>What are you saving for?</h2>
+            <p className={styles.stepSub}>Choose your primary savings goal. You can always change this later.</p>
+
+            <div className={styles.goalGrid}>
+              {goals.map(g => (
+                <button
+                  key={g}
+                  className={`${styles.goalBtn} ${form.goal === g ? styles.goalBtnActive : ''}`}
+                  onClick={() => setForm(f => ({...f, goal: g}))}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            <div style={{display:'flex',gap:'12px',marginTop:'1.5rem'}}>
+              <button className={styles.btnBack} onClick={() => setStep(0)}>← Back</button>
+              <button className={styles.btnNext} onClick={() => setStep(2)}>Continue →</button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2 — First circle */}
+        {step === 2 && (
+          <div className={styles.form}>
+            <h2 className={styles.stepTitle}>Create your first circle</h2>
+            <p className={styles.stepSub}>Start saving with your community. You can skip this and do it later.</p>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Circle name <span style={{color:'rgba(255,255,255,.3)',fontWeight:400}}>(optional)</span></label>
+              <input className={styles.input} type="text" value={form.circleName} onChange={set('circleName')} placeholder="e.g. Family Savings Fund" />
+            </div>
+
+            <div className={styles.row}>
+              <div className={styles.field}>
+                <label className={styles.label}>Monthly amount</label>
+                <input className={styles.input} type="number" value={form.amount} onChange={set('amount')} placeholder="200" />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Currency</label>
+                <select className={styles.select} value={form.currency} onChange={set('currency')}>
+                  <option>USD</option>
+                  <option>EUR</option>
+                  <option>GBP</option>
+                  <option>CAD</option>
+                  <option>ETB</option>
+                  <option>ERN</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{display:'flex',gap:'12px',marginTop:'1.5rem',flexWrap:'wrap'}}>
+              <button className={styles.btnBack} onClick={() => setStep(1)}>← Back</button>
+              <button
+                className={styles.btnNext}
+                onClick={handleFinish}
+                disabled={loading}
+              >
+                {loading ? 'Setting up...' : 'Go to dashboard →'}
+              </button>
+              <button
+                className={styles.btnSkip}
+                onClick={handleFinish}
+                disabled={loading}
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
