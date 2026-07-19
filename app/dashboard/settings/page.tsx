@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react'
 import { fetchUserAttributes, signOut, updatePassword, deleteUser } from 'aws-amplify/auth'
 import styles from './page.module.css'
 
-function Toggle({ defaultOn = false, onChange }: { defaultOn?: boolean, onChange?: (v: boolean) => void }) {
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+function Toggle({ defaultOn = false }: { defaultOn?: boolean }) {
   const [on, setOn] = useState(defaultOn)
   return (
     <div
-      onClick={() => { setOn(!on); onChange?.(!on) }}
+      onClick={() => setOn(!on)}
       style={{
         width: 40, height: 22, borderRadius: 100,
         background: on ? '#2563eb' : 'rgba(255,255,255,.15)',
@@ -51,25 +53,15 @@ export default function SettingsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL
-
   useEffect(() => {
     const loadUser = async () => {
       try {
         const attributes = await fetchUserAttributes()
         setEmail(attributes.email || '')
         setUserId(attributes.sub || '')
-        // Try to get name from DynamoDB
-        const res = await fetch(`${API_URL}/users?userId=${attributes.sub}`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data.user) {
-            setFirstName(data.user.firstName || '')
-            setLastName(data.user.lastName || '')
-            setEditFirstName(data.user.firstName || '')
-            setEditLastName(data.user.lastName || '')
-          }
-        }
+        const name = attributes.email?.split('@')[0] || ''
+        setFirstName(name)
+        setEditFirstName(name)
       } catch (err) {
         console.error(err)
       } finally {
@@ -129,6 +121,12 @@ export default function SettingsPage() {
     if (deleteConfirmText !== 'DELETE') return
     setDeleteLoading(true)
     try {
+      // Delete from DynamoDB first
+      await fetch(`${API_URL}/users`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
       // Send admin notification
       await fetch(`${API_URL}/email`, {
         method: 'POST',
@@ -249,7 +247,7 @@ export default function SettingsPage() {
               <span style={{color:'#fbbf24',fontSize:'13px'}}>Coming soon</span>
             </div>
             <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'10px',padding:'12px',marginTop:'1rem',fontSize:'13px',color:'rgba(255,255,255,.5)',lineHeight:1.6}}>
-              💳 ACH bank transfers and card payments coming soon. You will be able to set up automatic monthly contributions here.
+              💳 ACH bank transfers and card payments coming soon.
             </div>
           </div>
 
