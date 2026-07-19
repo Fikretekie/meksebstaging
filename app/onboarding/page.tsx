@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { fetchUserAttributes } from 'aws-amplify/auth'
-import { createUser } from '@/lib/api'
+import { createUser, sendEmail } from '@/lib/api'
 import styles from './page.module.css'
 
 const countries = ['United States','United Kingdom','Canada','Australia','Ethiopia','Eritrea','Nigeria','Kenya','Ghana','South Africa','Germany','France','Spain','UAE','India','Other']
@@ -40,23 +40,6 @@ export default function OnboardingPage() {
         const attributes = await fetchUserAttributes()
         setUserId(attributes.sub || '')
         setEmail(attributes.email || '')
-
-        // Get name from localStorage (saved during signup)
-        const firstName = localStorage.getItem('mekseb_firstName') || ''
-        const lastName = localStorage.getItem('mekseb_lastName') || ''
-        const country = localStorage.getItem('mekseb_country') || 'United States'
-
-        // Clean up localStorage after reading
-        localStorage.removeItem('mekseb_firstName')
-        localStorage.removeItem('mekseb_lastName')
-        localStorage.removeItem('mekseb_country')
-
-        setForm(f => ({
-          ...f,
-          firstName,
-          lastName,
-          country,
-        }))
       } catch (err) {
         console.error(err)
       } finally {
@@ -72,6 +55,7 @@ export default function OnboardingPage() {
   const handleFinish = async () => {
     setLoading(true)
     try {
+      // Save user profile to DynamoDB
       await createUser({
         userId,
         email,
@@ -79,6 +63,17 @@ export default function OnboardingPage() {
         lastName: form.lastName,
         country: form.country,
       })
+      // Send welcome email with real name now
+      try {
+        await sendEmail('USER_SIGNUP', {
+          email,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          country: form.country,
+        })
+      } catch (emailErr) {
+        console.error('Email failed:', emailErr)
+      }
       window.location.href = '/dashboard/index.html'
     } catch (err) {
       console.error(err)
@@ -129,11 +124,11 @@ export default function OnboardingPage() {
 
             <div className={styles.row}>
               <div className={styles.field}>
-                <label className={styles.label}>First name</label>
+                <label className={styles.label}>First name <span className={styles.req}>*</span></label>
                 <input className={styles.input} type="text" value={form.firstName} onChange={set('firstName')} placeholder="James" />
               </div>
               <div className={styles.field}>
-                <label className={styles.label}>Last name</label>
+                <label className={styles.label}>Last name <span className={styles.req}>*</span></label>
                 <input className={styles.input} type="text" value={form.lastName} onChange={set('lastName')} placeholder="Richardson" />
               </div>
             </div>
@@ -149,13 +144,6 @@ export default function OnboardingPage() {
               <label className={styles.label}>Short bio <span style={{color:'rgba(255,255,255,.3)',fontWeight:400}}>(optional)</span></label>
               <textarea className={styles.ta} rows={3} value={form.bio} onChange={set('bio')} placeholder="Tell the community a bit about yourself and your savings goals..." />
             </div>
-
-            {(form.firstName || form.lastName) && (
-              <div className={styles.infoCard}>
-                <div className={styles.infoTitle}>✅ Your info is pre-filled from signup</div>
-                <div className={styles.infoText}>We pulled your name from your account. Just confirm or update it.</div>
-              </div>
-            )}
 
             <button className={styles.btnNext} onClick={() => setStep(1)}>
               Continue →

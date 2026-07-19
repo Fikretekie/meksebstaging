@@ -5,20 +5,18 @@ import { signUp, confirmSignUp } from 'aws-amplify/auth'
 import { sendEmail } from '@/lib/api'
 import styles from './page.module.css'
 
-const countries = ['United States','United Kingdom','Canada','Australia','Ethiopia','Eritrea','Nigeria','Kenya','Ghana','South Africa','Germany','France','Spain','UAE','India','Other']
-
 export default function SignupPage() {
-  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', country:'United States', password:'', confirm:'' })
+  const [form, setForm] = useState({ email:'', password:'', confirm:'' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'signup'|'verify'>('signup')
   const [code, setCode] = useState('')
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement>) => setForm(f=>({...f,[k]:e.target.value}))
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f=>({...f,[k]:e.target.value}))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!form.firstName||!form.lastName||!form.email||!form.password) { setError('Please fill in all required fields.'); return }
+    if (!form.email||!form.password) { setError('Please fill in all required fields.'); return }
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return }
     if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setLoading(true)
@@ -29,8 +27,6 @@ export default function SignupPage() {
         options: {
           userAttributes: {
             email: form.email,
-            given_name: form.firstName,
-            family_name: form.lastName,
           }
         }
       })
@@ -51,17 +47,13 @@ export default function SignupPage() {
       try {
         await sendEmail('USER_SIGNUP', {
           email: form.email,
-          firstName: form.firstName,
-          lastName: form.lastName,
-          country: form.country,
+          firstName: '',
+          lastName: '',
+          country: '',
         })
       } catch (emailErr) {
         console.error('Email failed:', emailErr)
       }
-      // Save name to localStorage for onboarding prefill
-      localStorage.setItem('mekseb_firstName', form.firstName)
-      localStorage.setItem('mekseb_lastName', form.lastName)
-      localStorage.setItem('mekseb_country', form.country)
       window.location.href = '/onboarding/index.html'
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please try again.')
@@ -93,25 +85,9 @@ export default function SignupPage() {
       <h1 className={styles.title}>Create your account</h1>
       <p className={styles.sub}>Start saving together with your community</p>
       <form className={styles.form} onSubmit={handleSubmit}>
-        <div className={styles.row}>
-          <div className={styles.field}>
-            <label className={styles.label}>First name <span className={styles.req}>*</span></label>
-            <input className={styles.input} type="text" placeholder="James" value={form.firstName} onChange={set('firstName')} required />
-          </div>
-          <div className={styles.field}>
-            <label className={styles.label}>Last name <span className={styles.req}>*</span></label>
-            <input className={styles.input} type="text" placeholder="Richardson" value={form.lastName} onChange={set('lastName')} required />
-          </div>
-        </div>
         <div className={styles.field}>
           <label className={styles.label}>Email address <span className={styles.req}>*</span></label>
           <input className={styles.input} type="email" placeholder="you@email.com" value={form.email} onChange={set('email')} required />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label}>Country</label>
-          <select className={styles.select} value={form.country} onChange={set('country')}>
-            {countries.map(c=><option key={c}>{c}</option>)}
-          </select>
         </div>
         <div className={styles.field}>
           <label className={styles.label}>Password <span className={styles.req}>*</span></label>
