@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { signIn, signOut } from 'aws-amplify/auth'
+import { signIn, signOut, signInWithRedirect } from 'aws-amplify/auth'
 import styles from './page.module.css'
 
 export default function LoginPage() {
@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,6 +23,16 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.')
       setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true)
+    try {
+      await signInWithRedirect({ provider: 'Google' })
+    } catch (err: any) {
+      setError(err.message || 'Google sign in failed.')
+      setGoogleLoading(false)
     }
   }
 
@@ -48,12 +59,19 @@ export default function LoginPage() {
       </form>
       <div className={styles.divider}><span>or continue with</span></div>
       <div className={styles.socials}>
-        <button className={styles.social}>🌐 Google</button>
-        <button className={styles.social}>🍎 Apple</button>
+        <button
+          className={styles.social}
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
+          type="button"
+        >
+          {googleLoading ? 'Redirecting...' : '🌐 Google'}
+        </button>
+        <button className={styles.social} type="button">🍎 Apple</button>
       </div>
       <p className={styles.footer}>
         Don&apos;t have an account?{' '}
-        <Link href="/auth/signup" className={styles.link}>Create one free →</Link>
+        <Link href="/auth/signup/index.html" className={styles.link}>Create one free →</Link>
       </p>
     </div>
   )
