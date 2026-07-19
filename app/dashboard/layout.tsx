@@ -32,8 +32,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setCircleCount(data.circles.length)
         }
       } catch (err) {
-        if (retryCount < 2) {
-          setTimeout(() => loadUser(retryCount + 1), 500)
+        if (retryCount < 5) {
+          setTimeout(() => loadUser(retryCount + 1), 1500)
         } else {
           window.location.href = '/auth/login/index.html'
         }
@@ -81,13 +81,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         background:'var(--navy)',
         color:'rgba(255,255,255,.5)',
         fontSize:'14px',
+        flexDirection:'column',
+        gap:'1rem',
       }}>
-        <div style={{textAlign:'center'}}>
-          <div style={{fontSize:'2rem',marginBottom:'1rem'}}>
-            <div className={styles.mark} style={{margin:'0 auto 1rem',width:40,height:40,background:'linear-gradient(135deg,#2563eb,#06b6d4)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:18,color:'white'}}>M</div>
-          </div>
-          Loading...
-        </div>
+        <div style={{width:40,height:40,background:'linear-gradient(135deg,#2563eb,#06b6d4)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:18,color:'white'}}>M</div>
+        Loading...
       </div>
     )
   }
