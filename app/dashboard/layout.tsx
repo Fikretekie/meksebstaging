@@ -18,6 +18,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const loadUser = async (retryCount = 0) => {
       try {
+        // Handle OAuth callback if code is in URL
+        const urlParams = new URLSearchParams(window.location.search)
+        const code = urlParams.get('code')
+        if (code && retryCount === 0) {
+          // Wait for Amplify to process the OAuth code exchange
+          await new Promise(r => setTimeout(r, 3000))
+        }
+
         const attributes = await fetchUserAttributes()
         const email = attributes.email || ''
         setUserEmail(email)
@@ -32,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setCircleCount(data.circles.length)
         }
       } catch (err) {
-        if (retryCount < 5) {
+        if (retryCount < 8) {
           setTimeout(() => loadUser(retryCount + 1), 1500)
         } else {
           window.location.href = '/auth/login/index.html'
