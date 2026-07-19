@@ -40,11 +40,22 @@ export default function OnboardingPage() {
         const attributes = await fetchUserAttributes()
         setUserId(attributes.sub || '')
         setEmail(attributes.email || '')
-        // Pre-fill name and country from signup
+
+        // Get name from localStorage (saved during signup)
+        const firstName = localStorage.getItem('mekseb_firstName') || ''
+        const lastName = localStorage.getItem('mekseb_lastName') || ''
+        const country = localStorage.getItem('mekseb_country') || 'United States'
+
+        // Clean up localStorage after reading
+        localStorage.removeItem('mekseb_firstName')
+        localStorage.removeItem('mekseb_lastName')
+        localStorage.removeItem('mekseb_country')
+
         setForm(f => ({
           ...f,
-          firstName: attributes.given_name || '',
-          lastName: attributes.family_name || '',
+          firstName,
+          lastName,
+          country,
         }))
       } catch (err) {
         console.error(err)
@@ -88,7 +99,6 @@ export default function OnboardingPage() {
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
-        {/* Header */}
         <div className={styles.header}>
           <div className={styles.logo}>
             <div className={styles.mark}>M</div>
@@ -99,12 +109,10 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Progress bar */}
         <div className={styles.progress}>
           <div className={styles.progressFill} style={{width:`${((step + 1) / steps.length) * 100}%`}}/>
         </div>
 
-        {/* Step titles */}
         <div className={styles.steps}>
           {steps.map((s, i) => (
             <div key={s} className={`${styles.stepItem} ${i === step ? styles.stepActive : ''} ${i < step ? styles.stepDone : ''}`}>
@@ -114,7 +122,6 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Step 0 — Profile */}
         {step === 0 && (
           <div className={styles.form}>
             <h2 className={styles.stepTitle}>Tell us about yourself</h2>
@@ -143,10 +150,12 @@ export default function OnboardingPage() {
               <textarea className={styles.ta} rows={3} value={form.bio} onChange={set('bio')} placeholder="Tell the community a bit about yourself and your savings goals..." />
             </div>
 
-            <div className={styles.infoCard}>
-              <div className={styles.infoTitle}>✅ Your info is pre-filled from signup</div>
-              <div className={styles.infoText}>We pulled your name from your account. Just confirm or update it.</div>
-            </div>
+            {(form.firstName || form.lastName) && (
+              <div className={styles.infoCard}>
+                <div className={styles.infoTitle}>✅ Your info is pre-filled from signup</div>
+                <div className={styles.infoText}>We pulled your name from your account. Just confirm or update it.</div>
+              </div>
+            )}
 
             <button className={styles.btnNext} onClick={() => setStep(1)}>
               Continue →
@@ -154,7 +163,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 1 — Savings goal */}
         {step === 1 && (
           <div className={styles.form}>
             <h2 className={styles.stepTitle}>What are you saving for?</h2>
@@ -179,7 +187,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2 — First circle */}
         {step === 2 && (
           <div className={styles.form}>
             <h2 className={styles.stepTitle}>Create your first circle</h2>

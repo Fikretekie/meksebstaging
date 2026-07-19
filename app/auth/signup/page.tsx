@@ -58,6 +58,10 @@ export default function SignupPage() {
       } catch (emailErr) {
         console.error('Email failed:', emailErr)
       }
+      // Save name to localStorage for onboarding prefill
+      localStorage.setItem('mekseb_firstName', form.firstName)
+      localStorage.setItem('mekseb_lastName', form.lastName)
+      localStorage.setItem('mekseb_country', form.country)
       window.location.href = '/onboarding/index.html'
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please try again.')
