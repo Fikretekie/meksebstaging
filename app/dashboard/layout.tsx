@@ -13,6 +13,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [initials, setInitials] = useState('...')
   const [circleCount, setCircleCount] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
     const loadUser = async (retryCount = 0) => {
@@ -23,6 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const name = email.split('@')[0]
         setUserName(name)
         setInitials(name.slice(0, 2).toUpperCase())
+        setAuthReady(true)
 
         const userId = attributes.sub || ''
         const data = await getCircles(userId)
@@ -30,8 +32,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setCircleCount(data.circles.length)
         }
       } catch (err) {
-        if (retryCount < 3) {
-          setTimeout(() => loadUser(retryCount + 1), 1000)
+        if (retryCount < 2) {
+          setTimeout(() => loadUser(retryCount + 1), 500)
         } else {
           window.location.href = '/auth/login/index.html'
         }
@@ -42,9 +44,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleSignOut = async () => {
     try {
-      await signOut()
-      window.location.href = '/auth/login/index.html'
+      await signOut({ global: true })
     } catch (err) {
+      console.error(err)
+    } finally {
       window.location.href = '/auth/login/index.html'
     }
   }
@@ -67,6 +70,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href:'/dashboard/settings/index.html', label:'Settings', icon:'⚙' },
     ]},
   ]
+
+  if (!authReady) {
+    return (
+      <div style={{
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'center',
+        minHeight:'100vh',
+        background:'var(--navy)',
+        color:'rgba(255,255,255,.5)',
+        fontSize:'14px',
+      }}>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:'2rem',marginBottom:'1rem'}}>
+            <div className={styles.mark} style={{margin:'0 auto 1rem',width:40,height:40,background:'linear-gradient(135deg,#2563eb,#06b6d4)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:18,color:'white'}}>M</div>
+          </div>
+          Loading...
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
