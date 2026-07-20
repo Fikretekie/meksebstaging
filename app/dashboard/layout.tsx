@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { fetchUserAttributes, signOut } from 'aws-amplify/auth'
+import { fetchAuthSession, signOut } from 'aws-amplify/auth'
 import { getCircles } from '@/lib/api'
 import styles from './layout.module.css'
 
@@ -18,18 +18,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const loadUser = async (retryCount = 0) => {
       try {
-        const attributes = await fetchUserAttributes()
-        const email = attributes.email || ''
+        const session = await fetchAuthSession()
+
+        if (!session.tokens) {
+          throw new Error('No tokens')
+        }
+
+        const idToken = session.tokens.idToken
+        const payload = idToken?.payload
+        const email = (payload?.email as string) || ''
+        const userId = (payload?.sub as string) || ''
+
         setUserEmail(email)
         const name = email.split('@')[0]
         setUserName(name)
         setInitials(name.slice(0, 2).toUpperCase())
         setAuthReady(true)
 
-        const userId = attributes.sub || ''
-        const data = await getCircles(userId)
-        if (data.circles) {
-          setCircleCount(data.circles.length)
+        if (userId) {
+          const data = await getCircles(userId)
+          if (data.circles) {
+            setCircleCount(data.circles.length)
+          }
         }
       } catch (err) {
         if (retryCount < 8) {
