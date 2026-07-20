@@ -24,8 +24,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           throw new Error('No tokens')
         }
 
-        const idToken = session.tokens.idToken
-        const payload = idToken?.payload
+        // Works for BOTH email/password AND Google OAuth
+        const payload = session.tokens.idToken?.payload
         const email = (payload?.email as string) || ''
         const userId = (payload?.sub as string) || ''
 
