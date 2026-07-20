@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
 export default function CallbackPage() {
   const [status, setStatus] = useState('Completing sign in...')
 
@@ -12,15 +14,50 @@ export default function CallbackPage() {
 
         let resolved = false
 
+        const checkProfileAndRedirect = async () => {
+          try {
+            const { fetchAuthSession } = await import('aws-amplify/auth')
+            const session = await fetchAuthSession()
+
+            if (!session.tokens) throw new Error('No tokens')
+
+            const payload = session.tokens.idToken?.payload
+            const userId = payload?.sub as string
+            const email = payload?.email as string
+
+            setStatus('Checking your profile...')
+
+            // Check if user has a profile in DynamoDB
+            try {
+              const res = await fetch(`${API_URL}/users?userId=${userId}`)
+              const data = await res.json()
+
+              if (data.user && data.user.firstName) {
+                // Existing user with profile → go to dashboard
+                setStatus('Welcome back! Redirecting...')
+                window.location.replace('/dashboard/index.html')
+              } else {
+                // New Google user → go to onboarding
+                setStatus('Setting up your account...')
+                window.location.replace('/onboarding/index.html')
+              }
+            } catch (e) {
+              // If API fails, just go to dashboard
+              window.location.replace('/dashboard/index.html')
+            }
+          } catch (e) {
+            console.log('Session error:', e)
+            throw e
+          }
+        }
+
         const unsubscribe = Hub.listen('auth', ({ payload }) => {
           console.log('Auth event:', payload.event)
           if (payload.event === 'signedIn' && !resolved) {
             resolved = true
             unsubscribe()
-            setStatus('Success! Redirecting...')
-            setTimeout(() => {
-              window.location.replace('/dashboard/index.html')
-            }, 500)
+            setStatus('Signed in!')
+            checkProfileAndRedirect()
           }
           if (payload.event === 'signInWithRedirect_failure' && !resolved) {
             resolved = true
@@ -29,18 +66,15 @@ export default function CallbackPage() {
           }
         })
 
-        // Try getCurrentUser after delay
+        // Try after delay
         setTimeout(async () => {
           if (!resolved) {
             try {
-              const { getCurrentUser } = await import('aws-amplify/auth')
-              await getCurrentUser()
+              await checkProfileAndRedirect()
               resolved = true
               unsubscribe()
-              setStatus('Success! Redirecting...')
-              window.location.replace('/dashboard/index.html')
             } catch (e) {
-              console.log('getCurrentUser failed:', e)
+              console.log('Retry failed:', e)
             }
           }
         }, 3000)
