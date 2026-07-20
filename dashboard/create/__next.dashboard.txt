@@ -1,8 +1,8 @@
 1:"$Sreact.fragment"
-2:I[92825,["/_next/static/chunks/0cz7hyzv778y2.js","/_next/static/chunks/2amudtg0ck0gn.js","/_next/static/chunks/1588biwdo6fnm.js"],"ClientSegmentRoot"]
-3:I[82391,["/_next/static/chunks/0cz7hyzv778y2.js","/_next/static/chunks/2amudtg0ck0gn.js","/_next/static/chunks/1588biwdo6fnm.js","/_next/static/chunks/240vhyzmav7g4.js"],"default"]
-4:I[39756,["/_next/static/chunks/0cz7hyzv778y2.js","/_next/static/chunks/2amudtg0ck0gn.js","/_next/static/chunks/1588biwdo6fnm.js"],"default"]
-5:I[37457,["/_next/static/chunks/0cz7hyzv778y2.js","/_next/static/chunks/2amudtg0ck0gn.js","/_next/static/chunks/1588biwdo6fnm.js"],"default"]
+2:I[92825,["/_next/static/chunks/26n9p5wrrpzed.js","/_next/static/chunks/1588biwdo6fnm.js","/_next/static/chunks/0omdjdw2cx0-f.js"],"ClientSegmentRoot"]
+3:I[82391,["/_next/static/chunks/26n9p5wrrpzed.js","/_next/static/chunks/1588biwdo6fnm.js","/_next/static/chunks/0omdjdw2cx0-f.js","/_next/static/chunks/0ich-8_z2zguc.js"],"default"]
+4:I[39756,["/_next/static/chunks/26n9p5wrrpzed.js","/_next/static/chunks/1588biwdo6fnm.js","/_next/static/chunks/0omdjdw2cx0-f.js"],"default"]
+5:I[37457,["/_next/static/chunks/26n9p5wrrpzed.js","/_next/static/chunks/1588biwdo6fnm.js","/_next/static/chunks/0omdjdw2cx0-f.js"],"default"]
 :HL["/_next/static/chunks/42tdrw2ljmnq8.css","style"]
-0:{"rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/42tdrw2ljmnq8.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/240vhyzmav7g4.js","async":true}]],["$","$L2",null,{"Component":"$3","slots":{"children":["$","$L4",null,{"parallelRouterKey":"children","template":["$","$L5",null,{}]}]},"serverProvidedParams":{"params":{},"promises":["$@6"]}}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"hRXIDvyJMGKiL7IiCSaU5"}
+0:{"rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/42tdrw2ljmnq8.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/0ich-8_z2zguc.js","async":true}]],["$","$L2",null,{"Component":"$3","slots":{"children":["$","$L4",null,{"parallelRouterKey":"children","template":["$","$L5",null,{}]}]},"serverProvidedParams":{"params":{},"promises":["$@6"]}}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"4P1oTVYt0U7M_qd_AiBtH"}
 6:"$0:rsc:props:children:1:props:serverProvidedParams:params"
