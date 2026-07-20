@@ -18,7 +18,7 @@ export default function CallbackPage() {
             unsubscribe()
             window.location.replace('/dashboard/index.html')
           }
-          if (payload.event === 'signIn_failure') {
+          if (payload.event === 'signInWithRedirect_failure') {
             setStatus('Sign in failed. Redirecting...')
             unsubscribe()
             window.location.replace('/auth/login/index.html')
