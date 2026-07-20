@@ -2,34 +2,48 @@
 import { useEffect, useState } from 'react'
 
 export default function CallbackPage() {
-  const [status, setStatus] = useState('Signing you in...')
+  const [status, setStatus] = useState('Completing sign in...')
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        setStatus('Processing Google login...')
-        
-        // Give Amplify time to process the OAuth code
-        let attempts = 0
-        const maxAttempts = 10
-        
-        while (attempts < maxAttempts) {
-          try {
-            const { fetchUserAttributes } = await import('aws-amplify/auth')
-            const attributes = await fetchUserAttributes()
-            if (attributes.email) {
-              setStatus('Success! Redirecting...')
-              window.location.replace('/dashboard/index.html')
-              return
-            }
-          } catch (e) {
-            attempts++
-            await new Promise(r => setTimeout(r, 1000))
+        const { Hub } = await import('aws-amplify/utils')
+        const { fetchAuthSession } = await import('aws-amplify/auth')
+
+        // Listen for auth events
+        const unsubscribe = Hub.listen('auth', ({ payload }) => {
+          console.log('Auth event:', payload.event)
+          if (payload.event === 'signedIn') {
+            setStatus('Signed in! Redirecting...')
+            unsubscribe()
+            window.location.replace('/dashboard/index.html')
           }
+          if (payload.event === 'signIn_failure') {
+            setStatus('Sign in failed. Redirecting...')
+            unsubscribe()
+            window.location.replace('/auth/login/index.html')
+          }
+        })
+
+        // Trigger session fetch which completes OAuth exchange
+        setStatus('Processing authentication...')
+        try {
+          const session = await fetchAuthSession()
+          console.log('Session:', session)
+          if (session.tokens) {
+            setStatus('Success! Redirecting...')
+            window.location.replace('/dashboard/index.html')
+            return
+          }
+        } catch (e) {
+          console.log('Session error:', e)
         }
-        
-        // If all attempts fail, go to login
-        window.location.replace('/auth/login/index.html')
+
+        // Fallback - redirect after 8 seconds
+        setTimeout(() => {
+          window.location.replace('/dashboard/index.html')
+        }, 8000)
+
       } catch (err) {
         console.error('Callback error:', err)
         window.location.replace('/auth/login/index.html')
