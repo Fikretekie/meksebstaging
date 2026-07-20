@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getUserAttributes } from '@/lib/getUser'
+import { fetchAuthSession } from 'aws-amplify/auth'
 import { createUser, sendEmail } from '@/lib/api'
 import styles from './page.module.css'
 
@@ -37,9 +37,23 @@ export default function OnboardingPage() {
   useEffect(() => {
     const prefill = async () => {
       try {
-        const attributes = await getUserAttributes()
-        setUserId(attributes.sub || '')
-        setEmail(attributes.email || '')
+        // Use fetchAuthSession - works for BOTH email/password AND Google OAuth
+        const session = await fetchAuthSession()
+        const payload = session.tokens?.idToken?.payload
+        const uid = (payload?.sub as string) || ''
+        const userEmail = (payload?.email as string) || ''
+        
+        setUserId(uid)
+        setEmail(userEmail)
+
+        // For Google users, try to prefill name from Google profile
+        const name = (payload?.name as string) || ''
+        const givenName = (payload?.given_name as string) || ''
+        const familyName = (payload?.family_name as string) || ''
+
+        if (givenName) setForm(f => ({ ...f, firstName: givenName }))
+        if (familyName) setForm(f => ({ ...f, lastName: familyName }))
+
       } catch (err) {
         console.error(err)
       } finally {
@@ -55,7 +69,6 @@ export default function OnboardingPage() {
   const handleFinish = async () => {
     setLoading(true)
     try {
-      // Save user profile to DynamoDB
       await createUser({
         userId,
         email,
@@ -63,7 +76,6 @@ export default function OnboardingPage() {
         lastName: form.lastName,
         country: form.country,
       })
-      // Send welcome email with real name now
       try {
         await sendEmail('USER_SIGNUP', {
           email,
