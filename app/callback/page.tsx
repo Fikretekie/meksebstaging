@@ -7,42 +7,52 @@ export default function CallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        setStatus('Processing...')
         const { Hub } = await import('aws-amplify/utils')
-        const { fetchAuthSession } = await import('aws-amplify/auth')
 
-        // Listen for auth events
+        let resolved = false
+
         const unsubscribe = Hub.listen('auth', ({ payload }) => {
           console.log('Auth event:', payload.event)
-          if (payload.event === 'signedIn') {
-            setStatus('Signed in! Redirecting...')
+          if (payload.event === 'signedIn' && !resolved) {
+            resolved = true
             unsubscribe()
-            window.location.replace('/dashboard/index.html')
+            setStatus('Success! Redirecting...')
+            setTimeout(() => {
+              window.location.replace('/dashboard/index.html')
+            }, 500)
           }
-          if (payload.event === 'signInWithRedirect_failure') {
-            setStatus('Sign in failed. Redirecting...')
+          if (payload.event === 'signInWithRedirect_failure' && !resolved) {
+            resolved = true
             unsubscribe()
             window.location.replace('/auth/login/index.html')
           }
         })
 
-        // Trigger session fetch which completes OAuth exchange
-        setStatus('Processing authentication...')
-        try {
-          const session = await fetchAuthSession()
-          console.log('Session:', session)
-          if (session.tokens) {
-            setStatus('Success! Redirecting...')
-            window.location.replace('/dashboard/index.html')
-            return
+        // Try getCurrentUser after delay
+        setTimeout(async () => {
+          if (!resolved) {
+            try {
+              const { getCurrentUser } = await import('aws-amplify/auth')
+              await getCurrentUser()
+              resolved = true
+              unsubscribe()
+              setStatus('Success! Redirecting...')
+              window.location.replace('/dashboard/index.html')
+            } catch (e) {
+              console.log('getCurrentUser failed:', e)
+            }
           }
-        } catch (e) {
-          console.log('Session error:', e)
-        }
+        }, 3000)
 
-        // Fallback - redirect after 8 seconds
+        // Final fallback after 10 seconds
         setTimeout(() => {
-          window.location.replace('/dashboard/index.html')
-        }, 8000)
+          if (!resolved) {
+            resolved = true
+            unsubscribe()
+            window.location.replace('/dashboard/index.html')
+          }
+        }, 10000)
 
       } catch (err) {
         console.error('Callback error:', err)
