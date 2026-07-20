@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,62265,45403,t=>{"use strict";var e=t.i(74860);let s=(t,e)=>t.Auth.fetchAuthSession(e);t.s(["fetchAuthSession",0,s],45403),t.s(["fetchAuthSession",0,t=>s(e.Amplify,t)],62265)}]);
