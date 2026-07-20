@@ -18,9 +18,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const loadUser = async (retryCount = 0) => {
       try {
-        const { getCurrentUser } = await import('aws-amplify/auth')
-        await getCurrentUser()
-
         const attributes = await fetchUserAttributes()
         const email = attributes.email || ''
         setUserEmail(email)
