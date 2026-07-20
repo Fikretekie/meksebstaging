@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import { createCircle, sendEmail } from '@/lib/api'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
@@ -16,7 +16,7 @@ export default function CreatePage(){
     setLoading(true)
     setError('')
     try {
-      const attributes = await fetchUserAttributes()
+      const attributes = await getUserAttributes()
       const userId = attributes.sub || ''
       const circleId = `circle_${Date.now()}`
       await createCircle({

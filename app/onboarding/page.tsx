@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import { createUser, sendEmail } from '@/lib/api'
 import styles from './page.module.css'
 
@@ -37,7 +37,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     const prefill = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         setUserId(attributes.sub || '')
         setEmail(attributes.email || '')
       } catch (err) {

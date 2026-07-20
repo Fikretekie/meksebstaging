@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import { getCircles } from '@/lib/api'
 import styles from './page.module.css'
 
@@ -13,7 +13,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         const email = attributes.email || ''
         setUserName(email.split('@')[0])
         const userId = attributes.sub || ''

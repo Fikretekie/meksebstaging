@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import { getCircles } from '@/lib/api'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
@@ -21,7 +21,7 @@ export default function GroupsPage() {
   useEffect(() => {
     const loadCircles = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         const userId = attributes.sub || ''
         const data = await getCircles(userId)
         if (data.circles) {

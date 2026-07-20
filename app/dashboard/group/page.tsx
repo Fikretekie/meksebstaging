@@ -2,7 +2,7 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import styles from './page.module.css'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -26,7 +26,7 @@ function GroupDetail() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         const uid = attributes.sub || ''
         setUserId(uid)
 

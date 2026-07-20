@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import { getCircles } from '@/lib/api'
 import Link from 'next/link'
 import PageHeader from '@/components/dashboard/PageHeader'
@@ -52,7 +52,7 @@ export default function PolicyPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         const userId = attributes.sub || ''
         const data = await getCircles(userId)
         if (data.circles && data.circles.length > 0) {

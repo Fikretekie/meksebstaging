@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
 
@@ -10,7 +10,7 @@ export default function NetworkPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         const email = attributes.email || ''
         setUserName(email.split('@')[0])
       } catch (err) {

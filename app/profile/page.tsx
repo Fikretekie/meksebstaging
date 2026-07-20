@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import { getCircles } from '@/lib/api'
 import styles from './page.module.css'
 
@@ -16,7 +16,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         setEmail(attributes.email || '')
         setFirstName(attributes.given_name || '')
         setLastName(attributes.family_name || '')

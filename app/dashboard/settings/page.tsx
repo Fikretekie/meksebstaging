@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { fetchUserAttributes, signOut, updatePassword, deleteUser } from 'aws-amplify/auth'
+import { signOut, updatePassword, deleteUser } from 'aws-amplify/auth'
+import { getUserAttributes } from '@/lib/getUser'
 import styles from './page.module.css'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -56,7 +57,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const attributes = await fetchUserAttributes()
+        const attributes = await getUserAttributes()
         setEmail(attributes.email || '')
         setUserId(attributes.sub || '')
         const name = attributes.email?.split('@')[0] || ''
