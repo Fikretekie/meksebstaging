@@ -15,40 +15,44 @@ export default function CallbackPage() {
         let resolved = false
 
         const checkProfileAndRedirect = async () => {
-          try {
-            const { fetchAuthSession } = await import('aws-amplify/auth')
-            const session = await fetchAuthSession()
-
-            if (!session.tokens) throw new Error('No tokens')
-
-            const payload = session.tokens.idToken?.payload
-            const userId = payload?.sub as string
-            const email = payload?.email as string
-
-            setStatus('Checking your profile...')
-
-            // Check if user has a profile in DynamoDB
+          const { fetchAuthSession } = await import('aws-amplify/auth')
+          
+          // Retry up to 8 times with 1.5s delay
+          for (let i = 0; i < 8; i++) {
             try {
-              const res = await fetch(`${API_URL}/users?userId=${userId}`)
-              const data = await res.json()
+              const session = await fetchAuthSession()
+              if (!session.tokens) {
+                await new Promise(r => setTimeout(r, 1500))
+                continue
+              }
 
-              if (data.user && data.user.firstName) {
-                // Existing user with profile → go to dashboard
-                setStatus('Welcome back! Redirecting...')
+              const payload = session.tokens.idToken?.payload
+              const userId = payload?.sub as string
+
+              setStatus('Checking your profile...')
+
+              try {
+                const res = await fetch(`${API_URL}/users?userId=${userId}`)
+                const data = await res.json()
+
+                if (data.user && data.user.firstName) {
+                  setStatus('Welcome back! Redirecting...')
+                  window.location.replace('/dashboard/index.html')
+                } else {
+                  setStatus('Setting up your account...')
+                  window.location.replace('/onboarding/index.html')
+                }
+                return
+              } catch (e) {
                 window.location.replace('/dashboard/index.html')
-              } else {
-                // New Google user → go to onboarding
-                setStatus('Setting up your account...')
-                window.location.replace('/onboarding/index.html')
+                return
               }
             } catch (e) {
-              // If API fails, just go to dashboard
-              window.location.replace('/dashboard/index.html')
+              console.log(`Attempt ${i + 1} failed:`, e)
+              await new Promise(r => setTimeout(r, 1500))
             }
-          } catch (e) {
-            console.log('Session error:', e)
-            throw e
           }
+          throw new Error('All attempts failed')
         }
 
         const unsubscribe = Hub.listen('auth', ({ payload }) => {
@@ -57,7 +61,9 @@ export default function CallbackPage() {
             resolved = true
             unsubscribe()
             setStatus('Signed in!')
-            checkProfileAndRedirect()
+            checkProfileAndRedirect().catch(() => {
+              window.location.replace('/dashboard/index.html')
+            })
           }
           if (payload.event === 'signInWithRedirect_failure' && !resolved) {
             resolved = true
@@ -66,7 +72,7 @@ export default function CallbackPage() {
           }
         })
 
-        // Try after delay
+        // Try after 2 second delay
         setTimeout(async () => {
           if (!resolved) {
             try {
@@ -74,19 +80,19 @@ export default function CallbackPage() {
               resolved = true
               unsubscribe()
             } catch (e) {
-              console.log('Retry failed:', e)
+              console.log('All retries failed:', e)
             }
           }
-        }, 3000)
+        }, 2000)
 
-        // Final fallback after 10 seconds
+        // Final fallback after 15 seconds
         setTimeout(() => {
           if (!resolved) {
             resolved = true
             unsubscribe()
             window.location.replace('/dashboard/index.html')
           }
-        }, 10000)
+        }, 15000)
 
       } catch (err) {
         console.error('Callback error:', err)
