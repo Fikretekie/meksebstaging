@@ -11,8 +11,14 @@ Amplify.configure({
         oauth: {
           domain: 'us-east-18g6ovlgnd.auth.us-east-1.amazoncognito.com',
           scopes: ['email', 'openid', 'profile'],
-          redirectSignIn: ['https://staging.mekseb.com/callback/index.html'],
-          redirectSignOut: ['https://staging.mekseb.com/auth/login/index.html'],
+          redirectSignIn: [
+            'https://staging.mekseb.com/callback/index.html',
+            'https://mekseb.com/callback/index.html',
+          ],
+          redirectSignOut: [
+            'https://staging.mekseb.com/auth/login/index.html',
+            'https://mekseb.com/auth/login/index.html',
+          ],
           responseType: 'code',
         },
       },
