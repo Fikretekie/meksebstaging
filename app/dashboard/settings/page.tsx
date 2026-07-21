@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { signOut, updatePassword, deleteUser } from 'aws-amplify/auth'
-import { getUserAttributes } from '@/lib/getUser'
+import { fetchAuthSession, signOut, updatePassword } from 'aws-amplify/auth'
 import styles from './page.module.css'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -57,12 +56,30 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const attributes = await getUserAttributes()
-        setEmail(attributes.email || '')
-        setUserId(attributes.sub || '')
-        const name = attributes.email?.split('@')[0] || ''
-        setFirstName(name)
-        setEditFirstName(name)
+        // Use fetchAuthSession - works for both email/password AND Google OAuth
+        const session = await fetchAuthSession()
+        const payload = session.tokens?.idToken?.payload
+        const userEmail = (payload?.email as string) || ''
+        const uid = (payload?.sub as string) || ''
+        
+        setEmail(userEmail)
+        setUserId(uid)
+
+        // Try to get name from DynamoDB
+        try {
+          const res = await fetch(`${API_URL}/users?userId=${uid}`)
+          if (res.ok) {
+            const data = await res.json()
+            if (data.user) {
+              setFirstName(data.user.firstName || '')
+              setLastName(data.user.lastName || '')
+              setEditFirstName(data.user.firstName || '')
+              setEditLastName(data.user.lastName || '')
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load profile:', e)
+        }
       } catch (err) {
         console.error(err)
       } finally {
@@ -122,11 +139,11 @@ export default function SettingsPage() {
     if (deleteConfirmText !== 'DELETE') return
     setDeleteLoading(true)
     try {
-      // Delete from DynamoDB first
+      // Delete from DynamoDB AND Cognito via Lambda (works for ALL user types including Google)
       await fetch(`${API_URL}/users`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, email }),
       })
       // Send admin notification
       await fetch(`${API_URL}/email`, {
@@ -134,8 +151,8 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'USER_LEFT', data: { email } }),
       })
-      // Delete from Cognito
-      await deleteUser()
+      // Sign out locally
+      try { await signOut() } catch (e) {}
       window.location.href = '/'
     } catch (err: any) {
       console.error(err)
