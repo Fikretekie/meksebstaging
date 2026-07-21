@@ -31,6 +31,7 @@ export default function SettingsPage() {
   const [lastName, setLastName] = useState('')
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState('')
+  const [isGoogleUser, setIsGoogleUser] = useState(false)
 
   // Change password state
   const [showPwForm, setShowPwForm] = useState(false)
@@ -56,14 +57,18 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // Use fetchAuthSession - works for both email/password AND Google OAuth
         const session = await fetchAuthSession()
         const payload = session.tokens?.idToken?.payload
         const userEmail = (payload?.email as string) || ''
         const uid = (payload?.sub as string) || ''
-        
+
         setEmail(userEmail)
         setUserId(uid)
+
+        // Detect if user signed in with Google
+        const identities = payload?.identities as any[]
+        const googleUser = identities?.some((i: any) => i.providerName === 'Google') || false
+        setIsGoogleUser(googleUser)
 
         // Try to get name from DynamoDB
         try {
@@ -139,19 +144,16 @@ export default function SettingsPage() {
     if (deleteConfirmText !== 'DELETE') return
     setDeleteLoading(true)
     try {
-      // Delete from DynamoDB AND Cognito via Lambda (works for ALL user types including Google)
       await fetch(`${API_URL}/users`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, email }),
       })
-      // Send admin notification
       await fetch(`${API_URL}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'USER_LEFT', data: { email } }),
       })
-      // Sign out locally
       try { await signOut() } catch (e) {}
       window.location.href = '/'
     } catch (err: any) {
@@ -233,6 +235,11 @@ export default function SettingsPage() {
                 <div className={styles.row}><span>Email</span><span className={styles.val}>{email}</span></div>
                 <div className={styles.row}><span>Account status</span><span style={{color:'#34d399',fontSize:'13px',fontWeight:600}}>✓ Active</span></div>
                 <div className={styles.row}><span>Member since</span><span className={styles.val}>{memberSince}</span></div>
+                {isGoogleUser && (
+                  <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'8px',padding:'10px 14px',fontSize:'13px',color:'#93c5fd',marginTop:'0.75rem'}}>
+                    🌐 Signed in with Google
+                  </div>
+                )}
                 <button className={styles.btnGhost} style={{width:'100%',marginTop:'1.1rem'}} onClick={() => setShowEditProfile(true)}>
                   Edit profile
                 </button>
@@ -286,7 +293,11 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {showPwForm ? (
+            {isGoogleUser ? (
+              <div style={{background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:'8px',padding:'12px 14px',fontSize:'13px',color:'#fbbf24',marginTop:'1rem'}}>
+                🌐 You signed in with Google. To change your password, manage it in your Google account settings.
+              </div>
+            ) : showPwForm ? (
               <form onSubmit={handleChangePassword} style={{marginTop:'1rem',display:'flex',flexDirection:'column',gap:'10px'}}>
                 <div>
                   <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'4px'}}>CURRENT PASSWORD</label>
