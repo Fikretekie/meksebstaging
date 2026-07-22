@@ -26,6 +26,11 @@ Amplify.configure({
   },
 })
 
+if (typeof window !== 'undefined') {
+  console.log('Amplify configured. Current hostname:', window.location.hostname)
+  console.log('Amplify resolved config:', JSON.stringify(Amplify.getConfig(), null, 2))
+}
+
 export default function AmplifyProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
