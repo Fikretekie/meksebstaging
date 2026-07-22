@@ -1,9 +1,6 @@
 'use client'
 import { Amplify } from 'aws-amplify'
 
-const isProd = typeof window !== 'undefined' && window.location.hostname === 'mekseb.com'
-const baseUrl = isProd ? 'https://mekseb.com' : 'https://staging.mekseb.com'
-
 Amplify.configure({
   Auth: {
     Cognito: {
