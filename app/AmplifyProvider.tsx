@@ -1,6 +1,16 @@
 'use client'
 import { Amplify } from 'aws-amplify'
 
+const isProd = typeof window !== 'undefined' && window.location.hostname === 'mekseb.com'
+
+const redirectSignIn = isProd
+  ? 'https://mekseb.com/callback/index.html'
+  : 'https://staging.mekseb.com/callback/index.html'
+
+const redirectSignOut = isProd
+  ? 'https://mekseb.com/auth/login/index.html'
+  : 'https://staging.mekseb.com/auth/login/index.html'
+
 Amplify.configure({
   Auth: {
     Cognito: {
@@ -11,25 +21,14 @@ Amplify.configure({
         oauth: {
           domain: 'us-east-18g6ovlgnd.auth.us-east-1.amazoncognito.com',
           scopes: ['email', 'openid', 'profile'],
-          redirectSignIn: [
-            'https://staging.mekseb.com/callback/index.html',
-            'https://mekseb.com/callback/index.html',
-          ],
-          redirectSignOut: [
-            'https://staging.mekseb.com/auth/login/index.html',
-            'https://mekseb.com/auth/login/index.html',
-          ],
+          redirectSignIn: [redirectSignIn],
+          redirectSignOut: [redirectSignOut],
           responseType: 'code',
         },
       },
     },
   },
 })
-
-if (typeof window !== 'undefined') {
-  console.log('Amplify configured. Current hostname:', window.location.hostname)
-  console.log('Amplify resolved config:', JSON.stringify(Amplify.getConfig(), null, 2))
-}
 
 export default function AmplifyProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>
