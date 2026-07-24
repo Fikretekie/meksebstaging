@@ -17,7 +17,6 @@ export default function CallbackPage() {
         const checkProfileAndRedirect = async () => {
           const { fetchAuthSession } = await import('aws-amplify/auth')
           
-          // Retry up to 8 times with 1.5s delay
           for (let i = 0; i < 8; i++) {
             try {
               const session = await fetchAuthSession()
@@ -72,7 +71,6 @@ export default function CallbackPage() {
           }
         })
 
-        // Try after 2 second delay
         setTimeout(async () => {
           if (!resolved) {
             try {
@@ -85,7 +83,6 @@ export default function CallbackPage() {
           }
         }, 2000)
 
-        // Final fallback after 15 seconds
         setTimeout(() => {
           if (!resolved) {
             resolved = true
