@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { fetchAuthSession } from 'aws-amplify/auth'
-import styles from './page.module.css'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -17,6 +16,8 @@ export default function GroupPage() {
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteSuccess, setInviteSuccess] = useState('')
   const [inviteError, setInviteError] = useState('')
+  const [inviteLink, setInviteLink] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -48,6 +49,7 @@ export default function GroupPage() {
     e.preventDefault()
     setInviteError('')
     setInviteSuccess('')
+    setInviteLink('')
     if (!inviteEmail) { setInviteError('Please enter an email address.'); return }
     setInviteLoading(true)
     try {
@@ -68,17 +70,52 @@ export default function GroupPage() {
         setInviteError(data.error)
       } else {
         setInviteSuccess(`Invite sent to ${inviteEmail}! ✅`)
+        setInviteLink(data.inviteUrl)
         setInviteEmail('')
-        setTimeout(() => {
-          setInviteSuccess('')
-          setShowInvite(false)
-        }, 3000)
       }
     } catch (err: any) {
       setInviteError(err.message || 'Failed to send invite.')
     } finally {
       setInviteLoading(false)
     }
+  }
+
+  const handleGenerateLink = async () => {
+    setInviteError('')
+    setInviteSuccess('')
+    setInviteLink('')
+    setInviteLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          circleId,
+          invitedEmail: `link_${Date.now()}@mekseb.com`,
+          invitedBy: userId,
+          circleName: circle?.name,
+          amount: circle?.amount,
+          currency: circle?.currency,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setInviteError(data.error)
+      } else {
+        setInviteLink(data.inviteUrl)
+        setInviteSuccess('Link generated! Share it with anyone.')
+      }
+    } catch (err: any) {
+      setInviteError(err.message || 'Failed to generate link.')
+    } finally {
+      setInviteLoading(false)
+    }
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   if (loading) return (
@@ -123,61 +160,100 @@ export default function GroupPage() {
       {/* Invite Modal */}
       {showInvite && (
         <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
-          <div style={{background:'#0a1628',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',padding:'2rem',width:'100%',maxWidth:'440px'}}>
+          <div style={{background:'#0a1628',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',padding:'2rem',width:'100%',maxWidth:'460px'}}>
             <h2 style={{color:'white',marginBottom:'0.5rem'}}>Invite a member</h2>
             <p style={{color:'rgba(255,255,255,.5)',fontSize:'13px',marginBottom:'1.5rem'}}>
-              They will receive an email with the circle details and policy to review before joining.
+              Send an invite email or generate a shareable link.
             </p>
-            <form onSubmit={handleInvite}>
-              <div style={{marginBottom:'1rem'}}>
-                <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Email address</label>
+
+            {/* Circle info */}
+            <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'8px',padding:'12px',marginBottom:'1.5rem',fontSize:'12px',color:'#93c5fd'}}>
+              <div>💰 Contribution: <strong>${circle.amount} {circle.currency}/month</strong></div>
+              <div style={{marginTop:'4px'}}>🏛️ Governance: <strong>
+                {circle.governanceType === 'committee'
+                  ? `Elected committee`
+                  : `Everyone votes (${circle.withdrawalThreshold || 75}% threshold)`
+                }
+              </strong></div>
+            </div>
+
+            {/* Option 1 - Email */}
+            <div style={{marginBottom:'1rem'}}>
+              <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>
+                Send invite by email
+              </label>
+              <form onSubmit={handleInvite} style={{display:'flex',gap:'8px'}}>
                 <input
                   type="email"
                   value={inviteEmail}
                   onChange={e => setInviteEmail(e.target.value)}
                   placeholder="friend@email.com"
-                  style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'11px 14px',color:'white',fontSize:'14px'}}
+                  style={{flex:1,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
                 />
-              </div>
-
-              <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'8px',padding:'12px',marginBottom:'1rem',fontSize:'12px',color:'#93c5fd'}}>
-                <div>💰 Contribution: <strong>${circle.amount} {circle.currency}/month</strong></div>
-                <div style={{marginTop:'4px'}}>🏛️ Governance: <strong>
-                  {circle.governanceType === 'committee'
-                    ? `Elected committee`
-                    : `Everyone votes (${circle.withdrawalThreshold || 75}% threshold)`
-                  }
-                </strong></div>
-              </div>
-
-              {inviteSuccess && (
-                <div style={{background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.2)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#34d399',marginBottom:'1rem'}}>
-                  {inviteSuccess}
-                </div>
-              )}
-              {inviteError && (
-                <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#f87171',marginBottom:'1rem'}}>
-                  {inviteError}
-                </div>
-              )}
-
-              <div style={{display:'flex',gap:'10px'}}>
                 <button
                   type="submit"
                   disabled={inviteLoading}
-                  style={{flex:1,background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'11px',borderRadius:'8px',border:'none',fontWeight:600,cursor:'pointer',fontSize:'14px'}}
+                  style={{background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'10px 16px',borderRadius:'8px',border:'none',fontWeight:600,cursor:'pointer',fontSize:'13px',whiteSpace:'nowrap'}}
                 >
-                  {inviteLoading ? 'Sending...' : 'Send invite →'}
+                  {inviteLoading ? '...' : 'Send →'}
                 </button>
+              </form>
+            </div>
+
+            {/* Divider */}
+            <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'1rem'}}>
+              <div style={{flex:1,height:'1px',background:'rgba(255,255,255,.08)'}}/>
+              <span style={{fontSize:'12px',color:'rgba(255,255,255,.3)'}}>or</span>
+              <div style={{flex:1,height:'1px',background:'rgba(255,255,255,.08)'}}/>
+            </div>
+
+            {/* Option 2 - Copy link */}
+            <div style={{marginBottom:'1rem'}}>
+              <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>
+                Share a link
+              </label>
+              {inviteLink ? (
+                <div style={{display:'flex',gap:'8px'}}>
+                  <input
+                    readOnly
+                    value={inviteLink}
+                    style={{flex:1,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'rgba(255,255,255,.7)',fontSize:'12px'}}
+                  />
+                  <button
+                    onClick={handleCopyLink}
+                    style={{background: copied ? 'rgba(16,185,129,.2)' : 'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.1)',color: copied ? '#34d399' : 'white',padding:'10px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:600,whiteSpace:'nowrap'}}
+                  >
+                    {copied ? '✓ Copied!' : 'Copy'}
+                  </button>
+                </div>
+              ) : (
                 <button
-                  type="button"
-                  onClick={() => { setShowInvite(false); setInviteEmail(''); setInviteError(''); setInviteSuccess('') }}
-                  style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',padding:'11px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'14px'}}
+                  onClick={handleGenerateLink}
+                  disabled={inviteLoading}
+                  style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'white',padding:'10px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:600}}
                 >
-                  Cancel
+                  {inviteLoading ? 'Generating...' : '🔗 Generate invite link'}
                 </button>
+              )}
+            </div>
+
+            {inviteSuccess && (
+              <div style={{background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.2)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#34d399',marginBottom:'1rem'}}>
+                {inviteSuccess}
               </div>
-            </form>
+            )}
+            {inviteError && (
+              <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#f87171',marginBottom:'1rem'}}>
+                {inviteError}
+              </div>
+            )}
+
+            <button
+              onClick={() => { setShowInvite(false); setInviteEmail(''); setInviteError(''); setInviteSuccess(''); setInviteLink('') }}
+              style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',padding:'11px',borderRadius:'8px',cursor:'pointer',fontSize:'14px'}}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -210,13 +286,13 @@ export default function GroupPage() {
         </div>
       )}
 
-      {/* Circle details */}
+      {/* Circle details + Governance */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px',marginBottom:'2rem'}}>
         <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem'}}>
           <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',marginBottom:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Circle details</div>
           <div style={{display:'flex',flexDirection:'column',gap:'8px',fontSize:'13px'}}>
             <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Circle name</span><span style={{color:'white'}}>{circle.name}</span></div>
-            <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Monthly contribution</span><span style={{color:'white'}}>${circle.amount}/mo · {circle.currency}</span></div>
+            <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Contribution</span><span style={{color:'white'}}>${circle.amount}/mo · {circle.currency}</span></div>
             {circle.description && <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Description</span><span style={{color:'white'}}>{circle.description}</span></div>}
             <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Created</span><span style={{color:'white'}}>{circle.createdAt ? new Date(circle.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '-'}</span></div>
           </div>
@@ -247,9 +323,17 @@ export default function GroupPage() {
 
       {/* Members */}
       <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem',marginBottom:'2rem'}}>
-        <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',marginBottom:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Members</div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+          <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Members</div>
+          <button
+            onClick={() => setShowInvite(true)}
+            style={{fontSize:'12px',color:'#3b82f6',background:'none',border:'none',cursor:'pointer',fontWeight:600}}
+          >
+            + Invite member
+          </button>
+        </div>
         <div style={{fontSize:'13px',color:'rgba(255,255,255,.5)',textAlign:'center',padding:'1rem'}}>
-          👥 You are the only member. <span style={{color:'#3b82f6',cursor:'pointer'}} onClick={() => setShowInvite(true)}>Invite others to join!</span>
+          👥 You are the only member. Invite others to join!
         </div>
       </div>
 
