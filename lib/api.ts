@@ -26,6 +26,9 @@ export async function createCircle(data: {
   goal: string
   description: string
   createdBy: string
+  governanceType?: string
+  withdrawalThreshold?: number | null
+  committeeSize?: number | null
 }) {
   const res = await fetch(`${API_URL}/circles`, {
     method: 'POST',
@@ -68,6 +71,7 @@ export async function makePayment(data: {
   })
   return res.json()
 }
+
 // Send email notification
 export async function sendEmail(type: string, data: Record<string, any>) {
   const res = await fetch(`${API_URL}/email`, {
