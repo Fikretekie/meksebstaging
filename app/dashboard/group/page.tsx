@@ -1,222 +1,270 @@
 'use client'
-import { useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
-import Link from 'next/link'
-import { getUserAttributes } from '@/lib/getUser'
+import { useEffect, useState } from 'react'
+import { fetchAuthSession } from 'aws-amplify/auth'
 import styles from './page.module.css'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-const memberColors = [
-  'linear-gradient(135deg,#2563eb,#06b6d4)',
-  'linear-gradient(135deg,#8b5cf6,#ec4899)',
-  'linear-gradient(135deg,#10b981,#06b6d4)',
-  'linear-gradient(135deg,#f59e0b,#ef4444)',
-  'linear-gradient(135deg,#ec4899,#8b5cf6)',
-]
-
-function GroupDetail() {
-  const params = useSearchParams()
-  const circleId = params.get('id') || ''
+export default function GroupPage() {
   const [circle, setCircle] = useState<any>(null)
-  const [members, setMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState('')
+  const [circleId, setCircleId] = useState('')
+
+  // Invite modal state
+  const [showInvite, setShowInvite] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteSuccess, setInviteSuccess] = useState('')
+  const [inviteError, setInviteError] = useState('')
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const attributes = await getUserAttributes()
-        const uid = attributes.sub || ''
-        setUserId(uid)
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('id')
+    if (!id) return
+    setCircleId(id)
+    loadData(id)
+  }, [])
 
-        if (!circleId) return
+  const loadData = async (id: string) => {
+    try {
+      const session = await fetchAuthSession()
+      const payload = session.tokens?.idToken?.payload
+      const uid = (payload?.sub as string) || ''
+      setUserId(uid)
 
-        // Load circle details
-        const res = await fetch(`${API_URL}/circles?userId=${uid}`)
-        const data = await res.json()
-        if (data.circles) {
-          const found = data.circles.find((c: any) => c.circleId === circleId)
-          if (found) setCircle(found)
-        }
-
-        // Load members
-        const mRes = await fetch(`${API_URL}/members?circleId=${circleId}`)
-        if (mRes.ok) {
-          const mData = await mRes.json()
-          if (mData.members) setMembers(mData.members)
-        }
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+      const res = await fetch(`${API_URL}/circles?userId=${uid}`)
+      const data = await res.json()
+      const found = data.circles?.find((c: any) => c.circleId === id)
+      if (found) setCircle(found)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
-    loadData()
-  }, [circleId])
-
-  if (loading) {
-    return <div style={{color:'rgba(255,255,255,.5)',padding:'2rem'}}>Loading...</div>
   }
 
-  if (!circle) {
-    return (
-      <div style={{textAlign:'center',padding:'4rem 2rem'}}>
-        <div style={{fontSize:'3rem',marginBottom:'1rem'}}>👥</div>
-        <div style={{fontSize:'1.2rem',fontWeight:700,color:'white',marginBottom:'0.5rem'}}>Circle not found</div>
-        <Link href="/dashboard/groups/" style={{color:'#60a5fa'}}>← Back to my circles</Link>
-      </div>
-    )
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setInviteError('')
+    setInviteSuccess('')
+    if (!inviteEmail) { setInviteError('Please enter an email address.'); return }
+    setInviteLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          circleId,
+          invitedEmail: inviteEmail,
+          invitedBy: userId,
+          circleName: circle?.name,
+          amount: circle?.amount,
+          currency: circle?.currency,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setInviteError(data.error)
+      } else {
+        setInviteSuccess(`Invite sent to ${inviteEmail}! ✅`)
+        setInviteEmail('')
+        setTimeout(() => {
+          setInviteSuccess('')
+          setShowInvite(false)
+        }, 3000)
+      }
+    } catch (err: any) {
+      setInviteError(err.message || 'Failed to send invite.')
+    } finally {
+      setInviteLoading(false)
+    }
   }
 
-  const totalSaved = parseFloat(circle.totalSaved || '0')
-  const monthlyAmount = parseFloat(circle.amount || '0')
-  const goal = 10000
-  const pct = Math.min(Math.round((totalSaved / goal) * 100), 100)
-  const isAdmin = circle.createdBy === userId
+  if (loading) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh',color:'rgba(255,255,255,.5)'}}>
+      Loading...
+    </div>
+  )
+
+  if (!circle) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh',color:'rgba(255,255,255,.5)'}}>
+      Circle not found.
+    </div>
+  )
+
+  const progress = circle.goal ? Math.min((circle.totalSaved / parseFloat(circle.goal)) * 100, 100) : 0
 
   return (
     <div>
-      <div className={styles.back}>
-        <Link href="/dashboard/groups/" className={styles.backLink}>← My circles</Link>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'2rem',flexWrap:'wrap',gap:'12px'}}>
+        <div>
+          <a href="/dashboard/groups/index.html" style={{fontSize:'13px',color:'rgba(255,255,255,.5)',textDecoration:'none',display:'block',marginBottom:'8px'}}>← My circles</a>
+          <h1 style={{fontSize:'1.8rem',fontWeight:700,color:'white',marginBottom:'4px'}}>{circle.name}</h1>
+          <p style={{color:'rgba(255,255,255,.5)',fontSize:'14px'}}>${circle.amount}/month · {circle.currency} · You are admin</p>
+        </div>
+        <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
+          <button
+            style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',padding:'9px 16px',borderRadius:'9px',fontSize:'13px',cursor:'pointer'}}
+            onClick={() => alert('Group settings coming soon!')}
+          >
+            Group settings
+          </button>
+          <button
+            style={{background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'9px 16px',borderRadius:'9px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer'}}
+            onClick={() => setShowInvite(true)}
+          >
+            + Invite member
+          </button>
+        </div>
       </div>
 
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>{circle.name}</h1>
-          <p className={styles.sub}>
-            ${monthlyAmount}/month · {circle.currency} · {isAdmin ? 'You are admin' : 'Member'}
-          </p>
+      {/* Invite Modal */}
+      {showInvite && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
+          <div style={{background:'#0a1628',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',padding:'2rem',width:'100%',maxWidth:'440px'}}>
+            <h2 style={{color:'white',marginBottom:'0.5rem'}}>Invite a member</h2>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:'13px',marginBottom:'1.5rem'}}>
+              They will receive an email with the circle details and policy to review before joining.
+            </p>
+            <form onSubmit={handleInvite}>
+              <div style={{marginBottom:'1rem'}}>
+                <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Email address</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="friend@email.com"
+                  style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'11px 14px',color:'white',fontSize:'14px'}}
+                />
+              </div>
+
+              <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'8px',padding:'12px',marginBottom:'1rem',fontSize:'12px',color:'#93c5fd'}}>
+                <div>💰 Contribution: <strong>${circle.amount} {circle.currency}/month</strong></div>
+                <div style={{marginTop:'4px'}}>🏛️ Governance: <strong>
+                  {circle.governanceType === 'committee'
+                    ? `Elected committee`
+                    : `Everyone votes (${circle.withdrawalThreshold || 75}% threshold)`
+                  }
+                </strong></div>
+              </div>
+
+              {inviteSuccess && (
+                <div style={{background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.2)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#34d399',marginBottom:'1rem'}}>
+                  {inviteSuccess}
+                </div>
+              )}
+              {inviteError && (
+                <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#f87171',marginBottom:'1rem'}}>
+                  {inviteError}
+                </div>
+              )}
+
+              <div style={{display:'flex',gap:'10px'}}>
+                <button
+                  type="submit"
+                  disabled={inviteLoading}
+                  style={{flex:1,background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'11px',borderRadius:'8px',border:'none',fontWeight:600,cursor:'pointer',fontSize:'14px'}}
+                >
+                  {inviteLoading ? 'Sending...' : 'Send invite →'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowInvite(false); setInviteEmail(''); setInviteError(''); setInviteSuccess('') }}
+                  style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',padding:'11px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'14px'}}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-        <div className={styles.headerActions}>
-          <button className={styles.btnGhost}>Group settings</button>
-          <button className={styles.btnPrimary}>Invite member</button>
-        </div>
-      </div>
+      )}
 
       {/* Stats */}
-      <div className={styles.statsRow}>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Total saved</div>
-          <div className={styles.statVal} style={{color:'#60a5fa'}}>${totalSaved.toLocaleString()}</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Monthly amount</div>
-          <div className={styles.statVal} style={{color:'#fbbf24'}}>${monthlyAmount.toLocaleString()}</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Status</div>
-          <div className={styles.statVal} style={{color:'#34d399'}}>{circle.status || 'Active'}</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Goal</div>
-          <div className={styles.statVal}>{circle.goal || '—'}</div>
-        </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'14px',marginBottom:'2rem'}}>
+        {[
+          { label:'Total saved', value:`$${circle.totalSaved || 0}` },
+          { label:'Monthly amount', value:`$${circle.amount}` },
+          { label:'Status', value:circle.status },
+          { label:'Goal', value:circle.goal || 'Not set' },
+        ].map(s => (
+          <div key={s.label} style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1rem'}}>
+            <div style={{fontSize:'12px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>{s.label}</div>
+            <div style={{fontSize:'16px',fontWeight:700,color:'white'}}>{s.value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Progress bar */}
-      <div className={styles.progSection}>
-        <div className={styles.progLabels}>
-          <span>Progress to goal</span>
-          <span>${totalSaved.toLocaleString()} / ${goal.toLocaleString()} ({pct}%)</span>
+      {/* Progress */}
+      {circle.goal && (
+        <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem',marginBottom:'2rem'}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:'8px',fontSize:'13px'}}>
+            <span style={{color:'rgba(255,255,255,.5)'}}>Progress to goal</span>
+            <span style={{color:'white',fontWeight:600}}>${circle.totalSaved || 0} / ${circle.goal} ({Math.round(progress)}%)</span>
+          </div>
+          <div style={{height:'8px',background:'rgba(255,255,255,.08)',borderRadius:'100px',overflow:'hidden'}}>
+            <div style={{height:'100%',width:`${progress}%`,background:'linear-gradient(90deg,#2563eb,#06b6d4)',borderRadius:'100px',transition:'width .5s'}}/>
+          </div>
         </div>
-        <div className={styles.progBar}>
-          <div className={styles.progFill} style={{width:`${pct}%`}}/>
-        </div>
-      </div>
+      )}
 
       {/* Circle details */}
-      <div className={styles.card}>
-        <div className={styles.cardH}>
-          <span className={styles.cardT}>Circle details</span>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px',marginBottom:'2rem'}}>
+        <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem'}}>
+          <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',marginBottom:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Circle details</div>
+          <div style={{display:'flex',flexDirection:'column',gap:'8px',fontSize:'13px'}}>
+            <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Circle name</span><span style={{color:'white'}}>{circle.name}</span></div>
+            <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Monthly contribution</span><span style={{color:'white'}}>${circle.amount}/mo · {circle.currency}</span></div>
+            {circle.description && <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Description</span><span style={{color:'white'}}>{circle.description}</span></div>}
+            <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Created</span><span style={{color:'white'}}>{circle.createdAt ? new Date(circle.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '-'}</span></div>
+          </div>
         </div>
-        <div className={styles.policyGrid}>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>Circle name</div>
-            <div className={styles.policyVal}>{circle.name}</div>
-          </div>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>Monthly contribution</div>
-            <div className={styles.policyVal}>${monthlyAmount}/mo · {circle.currency}</div>
-          </div>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>Description</div>
-            <div className={styles.policyVal}>{circle.description || '—'}</div>
-          </div>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>Created</div>
-            <div className={styles.policyVal}>
-              {circle.createdAt ? new Date(circle.createdAt).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : '—'}
+
+        <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem'}}>
+          <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',marginBottom:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Governance</div>
+          <div style={{display:'flex',flexDirection:'column',gap:'8px',fontSize:'13px'}}>
+            <div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{color:'rgba(255,255,255,.5)'}}>Type</span>
+              <span style={{color:'white'}}>{circle.governanceType === 'committee' ? '🏛️ Elected committee' : '👥 Everyone votes'}</span>
             </div>
+            {circle.governanceType !== 'committee' && (
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'rgba(255,255,255,.5)'}}>Threshold</span>
+                <span style={{color:'white'}}>{circle.withdrawalThreshold || 75}% must approve</span>
+              </div>
+            )}
+            {circle.governanceType === 'committee' && (
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'rgba(255,255,255,.5)'}}>Committee size</span>
+                <span style={{color:'white'}}>{circle.committeeSize} members</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Members */}
-      <div className={styles.card}>
-        <div className={styles.cardH}>
-          <span className={styles.cardT}>Members</span>
+      <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem',marginBottom:'2rem'}}>
+        <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',marginBottom:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Members</div>
+        <div style={{fontSize:'13px',color:'rgba(255,255,255,.5)',textAlign:'center',padding:'1rem'}}>
+          👥 You are the only member. <span style={{color:'#3b82f6',cursor:'pointer'}} onClick={() => setShowInvite(true)}>Invite others to join!</span>
         </div>
-        {members.length === 0 ? (
-          <div style={{padding:'1.5rem',color:'rgba(255,255,255,.4)',fontSize:'13px',textAlign:'center'}}>
-            <div style={{marginBottom:'0.5rem'}}>👥</div>
-            You are the only member. Invite others to join!
-          </div>
-        ) : (
-          <div className={styles.memberList}>
-            {members.map((m, i) => (
-              <div key={i} className={styles.memberRow}>
-                <div className={styles.memberLeft}>
-                  <div className={styles.av} style={{background: memberColors[i % 5]}}>
-                    {(m.email || m.userId || 'M').slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className={styles.memberName}>{m.email || m.userId}</div>
-                    <div className={styles.memberMeta}>{m.role || 'Member'} · Joined {new Date(m.joinedAt).toLocaleDateString('en-US', {month:'short',year:'numeric'})}</div>
-                  </div>
-                </div>
-                <div className={styles.memberRight}>
-                  <span className={`${styles.stb} ${styles.ok}`}>✓ Active</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Policy summary */}
-      <div className={styles.card}>
-        <div className={styles.cardH}>
-          <span className={styles.cardT}>Group policy summary</span>
-          <Link href="/dashboard/policy/" className={styles.viewAll}>View full policy →</Link>
+      {/* Policy */}
+      <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+          <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Group policy summary</div>
+          <a href="/dashboard/policy/index.html" style={{fontSize:'12px',color:'#3b82f6',textDecoration:'none'}}>View full policy →</a>
         </div>
-        <div className={styles.policyGrid}>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>Contribution</div>
-            <div className={styles.policyVal}>${monthlyAmount}/mo on the 1st of every month</div>
-          </div>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>Withdrawal</div>
-            <div className={styles.policyVal}>Requires all member digital signatures + 30 days notice</div>
-          </div>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>Quitting</div>
-            <div className={styles.policyVal}>30 days notice required</div>
-          </div>
-          <div className={styles.policyItem}>
-            <div className={styles.policyLabel}>New members</div>
-            <div className={styles.policyVal}>Admin approval required</div>
-          </div>
+        <div style={{display:'flex',flexDirection:'column',gap:'8px',fontSize:'13px'}}>
+          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Contribution</span><span style={{color:'white'}}>${circle.amount}/mo on the 1st of every month</span></div>
+          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Withdrawal</span><span style={{color:'white'}}>{circle.governanceType === 'committee' ? `Committee approval required` : `${circle.withdrawalThreshold || 75}% member approval required`}</span></div>
+          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>New members</span><span style={{color:'white'}}>Invite only</span></div>
         </div>
       </div>
     </div>
-  )
-}
-
-export default function GroupPage() {
-  return (
-    <Suspense fallback={<div style={{padding:'2rem',color:'rgba(255,255,255,.5)'}}>Loading...</div>}>
-      <GroupDetail />
-    </Suspense>
   )
 }
