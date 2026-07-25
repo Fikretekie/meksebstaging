@@ -27,9 +27,6 @@ export default function OnboardingPage() {
     country: 'United States',
     bio: '',
     goal: '',
-    circleName: '',
-    amount: '',
-    currency: 'USD',
   })
   const [userId, setUserId] = useState('')
   const [email, setEmail] = useState('')
@@ -37,23 +34,17 @@ export default function OnboardingPage() {
   useEffect(() => {
     const prefill = async () => {
       try {
-        // Use fetchAuthSession - works for BOTH email/password AND Google OAuth
         const session = await fetchAuthSession()
         const payload = session.tokens?.idToken?.payload
         const uid = (payload?.sub as string) || ''
         const userEmail = (payload?.email as string) || ''
-        
-        setUserId(uid)
-        setEmail(userEmail)
-
-        // For Google users, try to prefill name from Google profile
-        const name = (payload?.name as string) || ''
         const givenName = (payload?.given_name as string) || ''
         const familyName = (payload?.family_name as string) || ''
 
+        setUserId(uid)
+        setEmail(userEmail)
         if (givenName) setForm(f => ({ ...f, firstName: givenName }))
         if (familyName) setForm(f => ({ ...f, lastName: familyName }))
-
       } catch (err) {
         console.error(err)
       } finally {
@@ -101,7 +92,7 @@ export default function OnboardingPage() {
     )
   }
 
-  const steps = ['Your profile', 'Your savings goal', 'Your first circle']
+  const steps = ['Your profile', 'Your savings goal']
 
   return (
     <div className={styles.wrap}>
@@ -182,54 +173,12 @@ export default function OnboardingPage() {
 
             <div style={{display:'flex',gap:'12px',marginTop:'1.5rem'}}>
               <button className={styles.btnBack} onClick={() => setStep(0)}>← Back</button>
-              <button className={styles.btnNext} onClick={() => setStep(2)}>Continue →</button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className={styles.form}>
-            <h2 className={styles.stepTitle}>Create your first circle</h2>
-            <p className={styles.stepSub}>Start saving with your community. You can skip this and do it later.</p>
-
-            <div className={styles.field}>
-              <label className={styles.label}>Circle name <span style={{color:'rgba(255,255,255,.3)',fontWeight:400}}>(optional)</span></label>
-              <input className={styles.input} type="text" value={form.circleName} onChange={set('circleName')} placeholder="e.g. Family Savings Fund" />
-            </div>
-
-            <div className={styles.row}>
-              <div className={styles.field}>
-                <label className={styles.label}>Monthly amount</label>
-                <input className={styles.input} type="number" value={form.amount} onChange={set('amount')} placeholder="200" />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>Currency</label>
-                <select className={styles.select} value={form.currency} onChange={set('currency')}>
-                  <option>USD</option>
-                  <option>EUR</option>
-                  <option>GBP</option>
-                  <option>CAD</option>
-                  <option>ETB</option>
-                  <option>ERN</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{display:'flex',gap:'12px',marginTop:'1.5rem',flexWrap:'wrap'}}>
-              <button className={styles.btnBack} onClick={() => setStep(1)}>← Back</button>
               <button
                 className={styles.btnNext}
                 onClick={handleFinish}
                 disabled={loading}
               >
                 {loading ? 'Setting up...' : 'Go to dashboard →'}
-              </button>
-              <button
-                className={styles.btnSkip}
-                onClick={handleFinish}
-                disabled={loading}
-              >
-                Skip for now
               </button>
             </div>
           </div>
