@@ -48,7 +48,7 @@ export default function GroupsPage() {
   if (circles.length === 0) {
     return (
       <div>
-        <PageHeader title="My circles" sub="You don't have any circles yet." btnLabel="+ New circle" btnHref="/dashboard/create/" />
+        <PageHeader title="My circles" sub="You don't have any circles yet." btnLabel="+ New circle" btnHref="/dashboard/create/index.html" />
         <div style={{textAlign:'center',padding:'4rem',color:'rgba(255,255,255,.4)'}}>
           <div style={{fontSize:'3rem',marginBottom:'1rem'}}>👥</div>
           <div style={{fontSize:'1.1rem',marginBottom:'.5rem'}}>No circles yet</div>
@@ -60,7 +60,7 @@ export default function GroupsPage() {
 
   return (
     <div>
-      <PageHeader title="My circles" sub={`You belong to ${circles.length} savings circle${circles.length!==1?'s':''}.`} btnLabel="+ New circle" btnHref="/dashboard/create/" />
+      <PageHeader title="My circles" sub={`You belong to ${circles.length} savings circle${circles.length!==1?'s':''}.`} btnLabel="+ New circle" btnHref="/dashboard/create/index.html" />
       <div className={styles.grid}>
         {circles.map((g, index) => {
           const saved = parseFloat(g.totalSaved || '0')
@@ -68,7 +68,7 @@ export default function GroupsPage() {
           const pct = Math.min(Math.round((saved / goal) * 100), 100)
           const color = barColor[index % 5]
           return (
-            <Link key={g.circleId} href={`/dashboard/group/?id=${g.circleId}`} className={styles.gc}>
+            <Link key={g.circleId} href={`/dashboard/group/index.html?id=${g.circleId}`} className={styles.gc}>
               <div className={styles.topBar} style={{background:color}}/>
               <div className={styles.gcHead}>
                 <div>
