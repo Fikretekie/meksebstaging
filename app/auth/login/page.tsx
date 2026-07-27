@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [hint, setHint] = useState('') // social login hint
+  const [hint, setHint] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
@@ -23,14 +23,12 @@ export default function LoginPage() {
       await signIn({ username: email, password })
       window.location.href = '/dashboard/index.html'
     } catch (err: any) {
-      // Detect if user signed up with Google or Apple
       if (
         err.message?.includes('Incorrect username or password') ||
         err.message?.includes('User does not exist') ||
         err.message?.includes('400')
       ) {
-        setError('Incorrect email or password.')
-        setHint(`Did you sign up with Google or Apple? Try signing in with a social button below instead.`)
+        setHint('Looks like you may have signed up with Google or Apple. Try the social buttons below, or double-check your password.')
       } else {
         setError(err.message || 'Login failed. Please try again.')
       }
@@ -67,13 +65,7 @@ export default function LoginPage() {
           <input className={styles.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} required />
         </div>
 
-        {error && (
-          <div className={styles.error}>
-            {error}
-          </div>
-        )}
-
-        {hint && (
+        {hint ? (
           <div style={{
             background:'rgba(37,99,235,.08)',
             border:'1px solid rgba(37,99,235,.2)',
@@ -82,10 +74,13 @@ export default function LoginPage() {
             fontSize:'13px',
             color:'#93c5fd',
             marginTop:'4px',
+            lineHeight: '1.6',
           }}>
             💡 {hint}
           </div>
-        )}
+        ) : error ? (
+          <div className={styles.error}>{error}</div>
+        ) : null}
 
         <button className={styles.btnPrimary} type="submit" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in →'}
