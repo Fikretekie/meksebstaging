@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getUserAttributes } from '@/lib/getUser'
+import { fetchAuthSession } from 'aws-amplify/auth'
 import { getCircles } from '@/lib/api'
 import PageHeader from '@/components/dashboard/PageHeader'
 import styles from './page.module.css'
@@ -19,21 +19,37 @@ export default function GroupsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Safety timeout — never stuck loading more than 10 seconds
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 10000)
+
     const loadCircles = async () => {
       try {
-        const attributes = await getUserAttributes()
-        const userId = attributes.sub || ''
+        const session = await fetchAuthSession()
+        const payload = session.tokens?.idToken?.payload
+        const userId = (payload?.sub as string) || ''
+
+        if (!userId) {
+          setLoading(false)
+          return
+        }
+
         const data = await getCircles(userId)
         if (data.circles) {
           setCircles(data.circles)
         }
       } catch (err) {
-        console.error(err)
+        console.error('Error loading circles:', err)
       } finally {
+        clearTimeout(timeout)
         setLoading(false)
       }
     }
+
     loadCircles()
+
+    return () => clearTimeout(timeout)
   }, [])
 
   if (loading) {
@@ -48,7 +64,7 @@ export default function GroupsPage() {
   if (circles.length === 0) {
     return (
       <div>
-        <PageHeader title="My circles" sub="You don't have any circles yet." btnLabel="+ New circle" btnHref="/dashboard/create/" />
+        <PageHeader title="My circles" sub="You don't have any circles yet." btnLabel="+ New circle" btnHref="/dashboard/create/index.html" />
         <div style={{textAlign:'center',padding:'4rem',color:'rgba(255,255,255,.4)'}}>
           <div style={{fontSize:'3rem',marginBottom:'1rem'}}>👥</div>
           <div style={{fontSize:'1.1rem',marginBottom:'.5rem'}}>No circles yet</div>
@@ -60,7 +76,7 @@ export default function GroupsPage() {
 
   return (
     <div>
-      <PageHeader title="My circles" sub={`You belong to ${circles.length} savings circle${circles.length!==1?'s':''}.`} btnLabel="+ New circle" btnHref="/dashboard/create/" />
+      <PageHeader title="My circles" sub={`You belong to ${circles.length} savings circle${circles.length!==1?'s':''}.`} btnLabel="+ New circle" btnHref="/dashboard/create/index.html" />
       <div className={styles.grid}>
         {circles.map((g, index) => {
           const saved = parseFloat(g.totalSaved || '0')
@@ -68,7 +84,7 @@ export default function GroupsPage() {
           const pct = Math.min(Math.round((saved / goal) * 100), 100)
           const color = barColor[index % 5]
           return (
-            <Link key={g.circleId} href={`/dashboard/group/?id=${g.circleId}`} className={styles.gc}>
+            <Link key={g.circleId} href={`/dashboard/group/index.html?id=${g.circleId}`} className={styles.gc}>
               <div className={styles.topBar} style={{background:color}}/>
               <div className={styles.gcHead}>
                 <div>
@@ -91,4 +107,4 @@ export default function GroupsPage() {
       </div>
     </div>
   )
-}
+  }
