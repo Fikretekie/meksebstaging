@@ -8,12 +8,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [hint, setHint] = useState('') // social login hint
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setHint('')
     if (!email || !password) { setError('Please fill in all fields.'); return }
     setLoading(true)
     try {
@@ -21,13 +23,25 @@ export default function LoginPage() {
       await signIn({ username: email, password })
       window.location.href = '/dashboard/index.html'
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.')
+      // Detect if user signed up with Google or Apple
+      if (
+        err.message?.includes('Incorrect username or password') ||
+        err.message?.includes('User does not exist') ||
+        err.message?.includes('400')
+      ) {
+        setError('Incorrect email or password.')
+        setHint(`Did you sign up with Google or Apple? Try signing in with a social button below instead.`)
+      } else {
+        setError(err.message || 'Login failed. Please try again.')
+      }
       setLoading(false)
     }
   }
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
+    setError('')
+    setHint('')
     try {
       await signInWithRedirect({ provider: 'Google' })
     } catch (err: any) {
@@ -52,7 +66,27 @@ export default function LoginPage() {
           </div>
           <input className={styles.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} required />
         </div>
-        {error && <div className={styles.error}>{error}</div>}
+
+        {error && (
+          <div className={styles.error}>
+            {error}
+          </div>
+        )}
+
+        {hint && (
+          <div style={{
+            background:'rgba(37,99,235,.08)',
+            border:'1px solid rgba(37,99,235,.2)',
+            borderRadius:'8px',
+            padding:'10px 14px',
+            fontSize:'13px',
+            color:'#93c5fd',
+            marginTop:'4px',
+          }}>
+            💡 {hint}
+          </div>
+        )}
+
         <button className={styles.btnPrimary} type="submit" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in →'}
         </button>
@@ -74,7 +108,7 @@ export default function LoginPage() {
             width: '100%',
             padding: '11px 16px',
             background: 'white',
-            border: '1px solid #e0e0e0',
+            border: hint ? '2px solid #2563eb' : '1px solid #e0e0e0',
             borderRadius: '10px',
             fontSize: '14px',
             fontWeight: 600,
@@ -82,6 +116,7 @@ export default function LoginPage() {
             cursor: googleLoading ? 'not-allowed' : 'pointer',
             opacity: googleLoading ? 0.7 : 1,
             transition: 'all .2s',
+            boxShadow: hint ? '0 0 0 3px rgba(37,99,235,.15)' : 'none',
           }}
         >
           <svg width="18" height="18" viewBox="0 0 18 18">
@@ -104,13 +139,14 @@ export default function LoginPage() {
             width: '100%',
             padding: '11px 16px',
             background: 'black',
-            border: '1px solid rgba(255,255,255,.1)',
+            border: hint ? '2px solid #2563eb' : '1px solid rgba(255,255,255,.1)',
             borderRadius: '10px',
             fontSize: '14px',
             fontWeight: 600,
             color: 'white',
             cursor: 'pointer',
             transition: 'all .2s',
+            boxShadow: hint ? '0 0 0 3px rgba(37,99,235,.15)' : 'none',
           }}
         >
           <svg width="18" height="18" viewBox="0 0 814 1000">
