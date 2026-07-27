@@ -4,13 +4,21 @@ import { fetchAuthSession } from 'aws-amplify/auth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
+const memberColors = [
+  'linear-gradient(135deg,#2563eb,#06b6d4)',
+  'linear-gradient(135deg,#8b5cf6,#ec4899)',
+  'linear-gradient(135deg,#10b981,#06b6d4)',
+  'linear-gradient(135deg,#f59e0b,#ef4444)',
+  'linear-gradient(135deg,#ec4899,#8b5cf6)',
+]
+
 export default function GroupPage() {
   const [circle, setCircle] = useState<any>(null)
+  const [members, setMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState('')
   const [circleId, setCircleId] = useState('')
 
-  // Invite modal state
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -34,12 +42,19 @@ export default function GroupPage() {
       const uid = (payload?.sub as string) || ''
       setUserId(uid)
 
+      // Load circle details
       const res = await fetch(`${API_URL}/circles?userId=${uid}`)
       const data = await res.json()
       const found = data.circles?.find((c: any) => c.circleId === id)
       if (found) setCircle(found)
+
+      // Load members
+      const mRes = await fetch(`${API_URL}/members?circleId=${id}`)
+      const mData = await mRes.json()
+      if (mData.members) setMembers(mData.members)
+
     } catch (err) {
-      console.error(err)
+      console.error('loadData error:', err)
     } finally {
       setLoading(false)
     }
@@ -130,7 +145,10 @@ export default function GroupPage() {
     </div>
   )
 
-  const progress = circle.goal ? Math.min((circle.totalSaved / parseFloat(circle.goal)) * 100, 100) : 0
+  const isAdmin = circle.createdBy === userId
+  const progress = circle.goal && !isNaN(parseFloat(circle.goal))
+    ? Math.min((parseFloat(circle.totalSaved || '0') / parseFloat(circle.goal)) * 100, 100)
+    : 0
 
   return (
     <div>
@@ -139,22 +157,24 @@ export default function GroupPage() {
         <div>
           <a href="/dashboard/groups/index.html" style={{fontSize:'13px',color:'rgba(255,255,255,.5)',textDecoration:'none',display:'block',marginBottom:'8px'}}>← My circles</a>
           <h1 style={{fontSize:'1.8rem',fontWeight:700,color:'white',marginBottom:'4px'}}>{circle.name}</h1>
-          <p style={{color:'rgba(255,255,255,.5)',fontSize:'14px'}}>${circle.amount}/month · {circle.currency} · You are admin</p>
+          <p style={{color:'rgba(255,255,255,.5)',fontSize:'14px'}}>${circle.amount}/month · {circle.currency} · {isAdmin ? 'You are admin' : 'Member'}</p>
         </div>
-        <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
-          <button
-            style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',padding:'9px 16px',borderRadius:'9px',fontSize:'13px',cursor:'pointer'}}
-            onClick={() => alert('Group settings coming soon!')}
-          >
-            Group settings
-          </button>
-          <button
-            style={{background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'9px 16px',borderRadius:'9px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer'}}
-            onClick={() => setShowInvite(true)}
-          >
-            + Invite member
-          </button>
-        </div>
+        {isAdmin && (
+          <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
+            <button
+              style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',padding:'9px 16px',borderRadius:'9px',fontSize:'13px',cursor:'pointer'}}
+              onClick={() => alert('Group settings coming soon!')}
+            >
+              Group settings
+            </button>
+            <button
+              style={{background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'9px 16px',borderRadius:'9px',fontSize:'13px',fontWeight:600,border:'none',cursor:'pointer'}}
+              onClick={() => setShowInvite(true)}
+            >
+              + Invite member
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Invite Modal */}
@@ -165,8 +185,6 @@ export default function GroupPage() {
             <p style={{color:'rgba(255,255,255,.5)',fontSize:'13px',marginBottom:'1.5rem'}}>
               Send an invite email or generate a shareable link.
             </p>
-
-            {/* Circle info */}
             <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'8px',padding:'12px',marginBottom:'1.5rem',fontSize:'12px',color:'#93c5fd'}}>
               <div>💰 Contribution: <strong>${circle.amount} {circle.currency}/month</strong></div>
               <div style={{marginTop:'4px'}}>🏛️ Governance: <strong>
@@ -176,8 +194,6 @@ export default function GroupPage() {
                 }
               </strong></div>
             </div>
-
-            {/* Option 1 - Email */}
             <div style={{marginBottom:'1rem'}}>
               <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>
                 Send invite by email
@@ -190,53 +206,37 @@ export default function GroupPage() {
                   placeholder="friend@email.com"
                   style={{flex:1,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
                 />
-                <button
-                  type="submit"
-                  disabled={inviteLoading}
-                  style={{background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'10px 16px',borderRadius:'8px',border:'none',fontWeight:600,cursor:'pointer',fontSize:'13px',whiteSpace:'nowrap'}}
-                >
+                <button type="submit" disabled={inviteLoading}
+                  style={{background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'10px 16px',borderRadius:'8px',border:'none',fontWeight:600,cursor:'pointer',fontSize:'13px',whiteSpace:'nowrap'}}>
                   {inviteLoading ? '...' : 'Send →'}
                 </button>
               </form>
             </div>
-
-            {/* Divider */}
             <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'1rem'}}>
               <div style={{flex:1,height:'1px',background:'rgba(255,255,255,.08)'}}/>
               <span style={{fontSize:'12px',color:'rgba(255,255,255,.3)'}}>or</span>
               <div style={{flex:1,height:'1px',background:'rgba(255,255,255,.08)'}}/>
             </div>
-
-            {/* Option 2 - Copy link */}
             <div style={{marginBottom:'1rem'}}>
               <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>
                 Share a link
               </label>
               {inviteLink ? (
                 <div style={{display:'flex',gap:'8px'}}>
-                  <input
-                    readOnly
-                    value={inviteLink}
-                    style={{flex:1,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'rgba(255,255,255,.7)',fontSize:'12px'}}
-                  />
-                  <button
-                    onClick={handleCopyLink}
-                    style={{background: copied ? 'rgba(16,185,129,.2)' : 'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.1)',color: copied ? '#34d399' : 'white',padding:'10px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:600,whiteSpace:'nowrap'}}
-                  >
+                  <input readOnly value={inviteLink}
+                    style={{flex:1,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'rgba(255,255,255,.7)',fontSize:'12px'}}/>
+                  <button onClick={handleCopyLink}
+                    style={{background: copied ? 'rgba(16,185,129,.2)' : 'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.1)',color: copied ? '#34d399' : 'white',padding:'10px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:600,whiteSpace:'nowrap'}}>
                     {copied ? '✓ Copied!' : 'Copy'}
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={handleGenerateLink}
-                  disabled={inviteLoading}
-                  style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'white',padding:'10px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:600}}
-                >
+                <button onClick={handleGenerateLink} disabled={inviteLoading}
+                  style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'white',padding:'10px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:600}}>
                   {inviteLoading ? 'Generating...' : '🔗 Generate invite link'}
                 </button>
               )}
             </div>
-
             {inviteSuccess && (
               <div style={{background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.2)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#34d399',marginBottom:'1rem'}}>
                 {inviteSuccess}
@@ -247,11 +247,9 @@ export default function GroupPage() {
                 {inviteError}
               </div>
             )}
-
             <button
               onClick={() => { setShowInvite(false); setInviteEmail(''); setInviteError(''); setInviteSuccess(''); setInviteLink('') }}
-              style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',padding:'11px',borderRadius:'8px',cursor:'pointer',fontSize:'14px'}}
-            >
+              style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',padding:'11px',borderRadius:'8px',cursor:'pointer',fontSize:'14px'}}>
               Close
             </button>
           </div>
@@ -264,7 +262,7 @@ export default function GroupPage() {
           { label:'Total saved', value:`$${circle.totalSaved || 0}` },
           { label:'Monthly amount', value:`$${circle.amount}` },
           { label:'Status', value:circle.status },
-          { label:'Goal', value:circle.goal || 'Not set' },
+          { label:'Members', value:`${members.length} of ${circle.maxMembers}` },
         ].map(s => (
           <div key={s.label} style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1rem'}}>
             <div style={{fontSize:'12px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>{s.label}</div>
@@ -274,7 +272,7 @@ export default function GroupPage() {
       </div>
 
       {/* Progress */}
-      {circle.goal && (
+      {circle.goal && !isNaN(parseFloat(circle.goal)) && (
         <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem',marginBottom:'2rem'}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:'8px',fontSize:'13px'}}>
             <span style={{color:'rgba(255,255,255,.5)'}}>Progress to goal</span>
@@ -297,7 +295,6 @@ export default function GroupPage() {
             <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'rgba(255,255,255,.5)'}}>Created</span><span style={{color:'white'}}>{circle.createdAt ? new Date(circle.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '-'}</span></div>
           </div>
         </div>
-
         <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem'}}>
           <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',marginBottom:'12px',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Governance</div>
           <div style={{display:'flex',flexDirection:'column',gap:'8px',fontSize:'13px'}}>
@@ -324,17 +321,45 @@ export default function GroupPage() {
       {/* Members */}
       <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'1.25rem',marginBottom:'2rem'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
-          <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>Members</div>
-          <button
-            onClick={() => setShowInvite(true)}
-            style={{fontSize:'12px',color:'#3b82f6',background:'none',border:'none',cursor:'pointer',fontWeight:600}}
-          >
-            + Invite member
-          </button>
+          <div style={{fontSize:'13px',color:'rgba(255,255,255,.4)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>
+            Members ({members.length})
+          </div>
+          {isAdmin && (
+            <button onClick={() => setShowInvite(true)}
+              style={{fontSize:'12px',color:'#3b82f6',background:'none',border:'none',cursor:'pointer',fontWeight:600}}>
+              + Invite member
+            </button>
+          )}
         </div>
-        <div style={{fontSize:'13px',color:'rgba(255,255,255,.5)',textAlign:'center',padding:'1rem'}}>
-          👥 You are the only member. Invite others to join!
-        </div>
+        {members.length === 0 ? (
+          <div style={{fontSize:'13px',color:'rgba(255,255,255,.5)',textAlign:'center',padding:'1rem'}}>
+            👥 You are the only member. {isAdmin && <span style={{color:'#3b82f6',cursor:'pointer'}} onClick={() => setShowInvite(true)}>Invite others to join!</span>}
+          </div>
+        ) : (
+          <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+            {members.map((m, i) => (
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom: i < members.length - 1 ? '1px solid rgba(255,255,255,.05)' : 'none'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  <div style={{width:36,height:36,borderRadius:'50%',background:memberColors[i % 5],display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:700,color:'white',flexShrink:0}}>
+                    {(m.displayName || m.email || 'M').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{fontSize:'14px',fontWeight:600,color:'white'}}>{m.displayName || m.email?.split('@')[0]}</div>
+                    <div style={{fontSize:'12px',color:'rgba(255,255,255,.4)'}}>{m.email} · Joined {new Date(m.joinedAt).toLocaleDateString('en-US',{month:'short',year:'numeric'})}</div>
+                  </div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <span style={{fontSize:'11px',fontWeight:600,padding:'3px 10px',borderRadius:'100px',background: m.role === 'admin' ? 'rgba(37,99,235,.2)' : 'rgba(255,255,255,.06)',color: m.role === 'admin' ? '#60a5fa' : 'rgba(255,255,255,.5)'}}>
+                    {m.role === 'admin' ? '👑 Admin' : 'Member'}
+                  </span>
+                  <span style={{fontSize:'11px',fontWeight:600,padding:'3px 10px',borderRadius:'100px',background:'rgba(16,185,129,.1)',color:'#34d399'}}>
+                    ✓ Active
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Policy */}
