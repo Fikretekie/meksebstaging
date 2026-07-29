@@ -58,7 +58,7 @@ export default function AdminPage() {
   const s = stats || {}
   const ses = s.ses || {}
   const stripe = s.stripe || {}
-  const freeEmailsLeft = (ses.max24HourSend || 0) - (ses.sentLast24Hours || 0)
+  const freeEmailsLeft = (ses.max24HourSend || 50000) - (ses.sentLast24Hours || 0)
 
   return (
     <div style={{minHeight:'100vh',background:'#060d1a',padding:'1.5rem',maxWidth:'900px',margin:'0 auto'}}>
@@ -146,7 +146,7 @@ export default function AdminPage() {
           </div>
           <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Daily Limit</div>
-            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : ses.max24HourSend ?? '0'}</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : ses.max24HourSend ?? '50000'}</div>
           </div>
         </div>
       </div>
