@@ -1,28 +1,39 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { fetchAuthSession } from 'aws-amplify/auth'
 
 const ADMIN_EMAIL = 'fikretekietewe@gmail.com'
-const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
-  const [statsLoading, setStatsLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(false)
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true)
+    try {
+      const res = await fetch('https://duv7vuo6z2.execute-api.us-east-1.amazonaws.com/admin')
+      const data = await res.json()
+      setStats(data)
+    } catch (err) {
+      console.error('Failed to load stats:', err)
+    } finally {
+      setStatsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const session = await fetchAuthSession()
         const payload = session.tokens?.idToken?.payload
-        const email = (payload?.email) || ''
+        const email = (payload?.email as string) || ''
         if (email !== ADMIN_EMAIL) {
           window.location.href = '/dashboard/index.html'
           return
         }
         setAuthorized(true)
-        loadStats()
       } catch (err) {
         window.location.href = '/auth/login/index.html'
       } finally {
@@ -32,17 +43,11 @@ export default function AdminPage() {
     checkAuth()
   }, [])
 
-  const loadStats = async () => {
-    try {
-      const res = await fetch("https://duv7vuo6z2.execute-api.us-east-1.amazonaws.com/admin")
-      const data = await res.json()
-      setStats(data)
-    } catch (err) {
-      console.error('Failed to load stats:', err)
-    } finally {
-      setStatsLoading(false)
+  useEffect(() => {
+    if (authorized) {
+      loadStats()
     }
-  }
+  }, [authorized, loadStats])
 
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'#060d1a',color:'rgba(255,255,255,.5)'}}>
@@ -58,7 +63,7 @@ export default function AdminPage() {
   const s = stats || {}
   const ses = s.ses || {}
   const stripe = s.stripe || {}
-  const freeEmailsLeft = (ses.max24HourSend || 50000) - (ses.sentLast24Hours || 0)
+  const freeEmailsLeft = Math.max(0, (ses.max24HourSend || 50000) - (ses.sentLast24Hours || 0))
 
   return (
     <div style={{minHeight:'100vh',background:'#060d1a',padding:'1.5rem',maxWidth:'900px',margin:'0 auto'}}>
@@ -72,31 +77,33 @@ export default function AdminPage() {
           </div>
         </div>
         <div style={{display:'flex',gap:'8px'}}>
-          <button onClick={loadStats} style={{fontSize:'12px',color:'#3b82f6',background:'rgba(37,99,235,.1)',border:'1px solid rgba(37,99,235,.2)',borderRadius:'8px',padding:'8px 12px',cursor:'pointer'}}>🔄 Refresh</button>
+          <button onClick={loadStats} disabled={statsLoading} style={{fontSize:'12px',color:'#3b82f6',background:'rgba(37,99,235,.1)',border:'1px solid rgba(37,99,235,.2)',borderRadius:'8px',padding:'8px 12px',cursor:'pointer'}}>
+            {statsLoading ? '⏳ Loading...' : '🔄 Refresh'}
+          </button>
           <a href="/dashboard/index.html" style={{fontSize:'13px',color:'rgba(255,255,255,.6)',textDecoration:'none',padding:'8px 16px',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px'}}>← Dashboard</a>
         </div>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'12px',marginBottom:'1.5rem'}}>
-        <div style={{background:'linear-gradient(135deg,rgba(37,99,235,.2),rgba(37,99,235,.05))',border:'1px solid rgba(37,99,235,.3)',borderRadius:'16px',padding:'1.25rem'}}>
+        <div style={{background:'linear-gradient(135deg,rgba(37,99,235,.2),rgba(37,99,235,.05))',border:'1px solid rgba(37,99,235,.3)',borderTop:'2px solid #2563eb',borderRadius:'16px',padding:'1.25rem'}}>
           <div style={{fontSize:'24px',marginBottom:'4px'}}>👥</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Users</div>
           <div style={{fontSize:'32px',fontWeight:800,color:'#60a5fa'}}>{statsLoading ? '...' : s.totalUsers ?? '—'}</div>
           <div style={{fontSize:'11px',color:'#34d399',marginTop:'4px'}}>+{statsLoading ? '...' : s.newUsersThisWeek ?? 0} this week</div>
         </div>
-        <div style={{background:'linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.05))',border:'1px solid rgba(16,185,129,.3)',borderRadius:'16px',padding:'1.25rem'}}>
+        <div style={{background:'linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.05))',border:'1px solid rgba(16,185,129,.3)',borderTop:'2px solid #10b981',borderRadius:'16px',padding:'1.25rem'}}>
           <div style={{fontSize:'24px',marginBottom:'4px'}}>⭕</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Circles</div>
           <div style={{fontSize:'32px',fontWeight:800,color:'#34d399'}}>{statsLoading ? '...' : s.totalCircles ?? '—'}</div>
           <div style={{fontSize:'11px',color:'#34d399',marginTop:'4px'}}>{statsLoading ? '...' : s.activeCircles ?? 0} active</div>
         </div>
-        <div style={{background:'linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.05))',border:'1px solid rgba(245,158,11,.3)',borderRadius:'16px',padding:'1.25rem'}}>
+        <div style={{background:'linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.05))',border:'1px solid rgba(245,158,11,.3)',borderTop:'2px solid #f59e0b',borderRadius:'16px',padding:'1.25rem'}}>
           <div style={{fontSize:'24px',marginBottom:'4px'}}>💳</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Payments</div>
           <div style={{fontSize:'32px',fontWeight:800,color:'#fbbf24'}}>{statsLoading ? '...' : s.totalPayments ?? '—'}</div>
           <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginTop:'4px'}}>transactions</div>
         </div>
-        <div style={{background:'linear-gradient(135deg,rgba(167,139,250,.2),rgba(167,139,250,.05))',border:'1px solid rgba(167,139,250,.3)',borderRadius:'16px',padding:'1.25rem'}}>
+        <div style={{background:'linear-gradient(135deg,rgba(167,139,250,.2),rgba(167,139,250,.05))',border:'1px solid rgba(167,139,250,.3)',borderTop:'2px solid #8b5cf6',borderRadius:'16px',padding:'1.25rem'}}>
           <div style={{fontSize:'24px',marginBottom:'4px'}}>💰</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Saved</div>
           <div style={{fontSize:'32px',fontWeight:800,color:'#a78bfa'}}>${statsLoading ? '...' : s.totalSaved ?? '0'}</div>
@@ -109,7 +116,7 @@ export default function AdminPage() {
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px'}}>
           <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>This Month</div>
-            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>${statsLoading ? '...' : stripe.monthRevenue?.toFixed(2) ?? '0'}</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>${statsLoading ? '...' : (stripe.monthRevenue || 0).toFixed(2)}</div>
           </div>
           <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Payments This Month</div>
@@ -117,7 +124,7 @@ export default function AdminPage() {
           </div>
           <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Total Revenue</div>
-            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>${statsLoading ? '...' : stripe.totalRevenue?.toFixed(2) ?? '0'}</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>${statsLoading ? '...' : (stripe.totalRevenue || 0).toFixed(2)}</div>
           </div>
         </div>
         <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer" style={{display:'block',textAlign:'center',marginTop:'12px',fontSize:'12px',color:'#60a5fa',textDecoration:'none'}}>View full Stripe dashboard →</a>
@@ -142,12 +149,15 @@ export default function AdminPage() {
         <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'12px'}}>
           <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Free Emails Left Today</div>
-            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : freeEmailsLeft}</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : freeEmailsLeft.toLocaleString()}</div>
           </div>
           <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
             <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Daily Limit</div>
-            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : ses.max24HourSend ?? '50000'}</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : (ses.max24HourSend || 50000).toLocaleString()}</div>
           </div>
+        </div>
+        <div style={{textAlign:'center',marginTop:'10px',fontSize:'11px',color:'rgba(16,185,129,.7)'}}>
+          ✓ Production mode · {ses.maxSendRate || 14} emails/second
         </div>
       </div>
 
