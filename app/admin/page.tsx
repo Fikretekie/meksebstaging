@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState(null)
+  const [stats, setStats] = useState<any>(null)
   const [statsLoading, setStatsLoading] = useState(true)
 
   useEffect(() => {
