@@ -34,7 +34,7 @@ export default function AdminPage() {
 
   const loadStats = async () => {
     try {
-      const res = await fetch(`${API_URL}/admin`)
+      const res = await fetch("https://duv7vuo6z2.execute-api.us-east-1.amazonaws.com/admin")
       const data = await res.json()
       setStats(data)
     } catch (err) {
