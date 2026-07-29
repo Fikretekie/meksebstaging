@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
+      <body>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-XL2RFMHCBH"
           strategy="afterInteractive"
@@ -24,8 +24,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             gtag('config', 'G-XL2RFMHCBH');
           `}
         </Script>
-      </head>
-      <body>
         <AmplifyProvider>
           {children}
         </AmplifyProvider>
