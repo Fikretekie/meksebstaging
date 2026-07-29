@@ -28,7 +28,6 @@ function PaymentForm({ circle, userId, userEmail }: any) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [fees, setFees] = useState<any>(null)
 
   const amount = parseFloat(circle.amount || '0')
   const meksebFee = Math.round(amount * 0.01 * 100) / 100
@@ -74,6 +73,19 @@ function PaymentForm({ circle, userId, userEmail }: any) {
         throw new Error(result.error.message || 'Payment failed')
       }
 
+      // Confirm payment and update totalSaved in DynamoDB
+      await fetch(`${API_URL}/stripe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm',
+          userId,
+          circleId: circle.circleId,
+          amount: amount,
+          paymentIntentId: result.paymentIntent?.id,
+        }),
+      })
+
       setSuccess(true)
     } catch (err: any) {
       setError(err.message || 'Payment failed. Please try again.')
@@ -98,7 +110,7 @@ function PaymentForm({ circle, userId, userEmail }: any) {
         <div style={{fontSize:'14px',color:'rgba(255,255,255,.6)',marginBottom:'2rem'}}>
           Your ${amount} contribution to {circle.name} has been received.
         </div>
-        <Link href="/dashboard/payments/" style={{
+        <Link href="/dashboard/payments/index.html" style={{
           display:'inline-block',
           background:'linear-gradient(135deg,#2563eb,#1d4ed8)',
           color:'white',
@@ -115,7 +127,6 @@ function PaymentForm({ circle, userId, userEmail }: any) {
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Fee breakdown */}
       <div style={{
         background: 'rgba(255,255,255,.03)',
         border: '1px solid rgba(255,255,255,.08)',
@@ -143,7 +154,6 @@ function PaymentForm({ circle, userId, userEmail }: any) {
         </div>
       </div>
 
-      {/* Card input */}
       <div style={{
         background: 'rgba(255,255,255,.05)',
         border: '1px solid rgba(255,255,255,.1)',
@@ -232,13 +242,13 @@ function PayPage() {
     <div style={{textAlign:'center',padding:'4rem'}}>
       <div style={{fontSize:'2rem',marginBottom:'1rem'}}>💳</div>
       <div style={{color:'white',fontWeight:700,marginBottom:'0.5rem'}}>Circle not found</div>
-      <Link href="/dashboard/payments/" style={{color:'#60a5fa'}}>← Back to payments</Link>
+      <Link href="/dashboard/payments/index.html" style={{color:'#60a5fa'}}>← Back to payments</Link>
     </div>
   )
 
   return (
     <div style={{maxWidth:'480px',margin:'0 auto',padding:'2rem 1rem'}}>
-      <Link href="/dashboard/payments/" style={{color:'rgba(255,255,255,.5)',fontSize:'13px',textDecoration:'none',display:'block',marginBottom:'1.5rem'}}>
+      <Link href="/dashboard/payments/index.html" style={{color:'rgba(255,255,255,.5)',fontSize:'13px',textDecoration:'none',display:'block',marginBottom:'1.5rem'}}>
         ← Back to payments
       </Link>
 
