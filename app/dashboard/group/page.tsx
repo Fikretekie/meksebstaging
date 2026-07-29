@@ -38,6 +38,12 @@ export default function GroupPage() {
   const [editGoal, setEditGoal] = useState('')
   const [editMaxMembers, setEditMaxMembers] = useState('')
 
+  // Delete circle state
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const id = params.get('id')
@@ -80,13 +86,11 @@ export default function GroupPage() {
     setSettingsError('')
     setSettingsSuccess('')
 
-    // Validate goal is a number
     if (editGoal && isNaN(parseFloat(editGoal))) {
       setSettingsError('Savings goal must be a number.')
       return
     }
 
-    // Validate max members can only increase
     if (editMaxMembers && parseInt(editMaxMembers) < parseInt(circle.maxMembers)) {
       setSettingsError('Max members can only be increased, not decreased.')
       return
@@ -127,6 +131,46 @@ export default function GroupPage() {
       setSettingsError(err.message || 'Failed to update settings.')
     } finally {
       setSettingsLoading(false)
+    }
+  }
+
+  const handleDeleteCircle = async () => {
+    if (deleteConfirm !== 'DELETE') {
+      setDeleteError('Please type DELETE to confirm.')
+      return
+    }
+
+    // Check if circle has savings
+    const totalSaved = parseFloat(circle.totalSaved || '0')
+    if (totalSaved > 0) {
+      setDeleteError(`This circle has $${totalSaved} saved. Please withdraw all funds before deleting.`)
+      return
+    }
+
+    // Check if circle has other members
+    const otherMembers = members.filter(m => m.userId !== userId)
+    if (otherMembers.length > 0) {
+      setDeleteError(`This circle has ${otherMembers.length} other member(s). Ask them to leave before deleting, or start a 75% vote to dissolve.`)
+      return
+    }
+
+    setDeleteLoading(true)
+    setDeleteError('')
+    try {
+      const res = await fetch(`${API_URL}/circles?circleId=${circleId}&userId=${userId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (data.error) {
+        setDeleteError(data.error)
+        setDeleteLoading(false)
+      } else {
+        window.location.href = '/dashboard/groups/index.html'
+      }
+    } catch (err: any) {
+      setDeleteError(err.message || 'Failed to delete circle.')
+      setDeleteLoading(false)
     }
   }
 
@@ -249,8 +293,8 @@ export default function GroupPage() {
 
       {/* Group Settings Modal */}
       {showSettings && (
-        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
-          <div style={{background:'#0a1628',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',padding:'2rem',width:'100%',maxWidth:'480px'}}>
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem',overflowY:'auto'}}>
+          <div style={{background:'#0a1628',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',padding:'2rem',width:'100%',maxWidth:'480px',margin:'auto'}}>
             <h2 style={{color:'white',marginBottom:'0.5rem'}}>Group settings</h2>
             <p style={{color:'rgba(255,255,255,.5)',fontSize:'13px',marginBottom:'1.5rem'}}>
               Edit your circle details. Changes to contribution amount and governance require member vote.
@@ -258,7 +302,6 @@ export default function GroupPage() {
 
             <form onSubmit={handleSaveSettings}>
               <div style={{display:'flex',flexDirection:'column',gap:'14px',marginBottom:'1.5rem'}}>
-
                 <div>
                   <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Circle name</label>
                   <input
@@ -267,7 +310,6 @@ export default function GroupPage() {
                     style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
                   />
                 </div>
-
                 <div>
                   <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Description</label>
                   <textarea
@@ -277,7 +319,6 @@ export default function GroupPage() {
                     style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px',resize:'vertical',fontFamily:'inherit'}}
                   />
                 </div>
-
                 <div>
                   <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Savings goal ($)</label>
                   <input
@@ -288,7 +329,6 @@ export default function GroupPage() {
                     style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
                   />
                 </div>
-
                 <div>
                   <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Max members (can only increase)</label>
                   <input
@@ -300,10 +340,8 @@ export default function GroupPage() {
                   />
                   <p style={{fontSize:'11px',color:'rgba(255,255,255,.3)',marginTop:'4px'}}>Current: {circle.maxMembers} members</p>
                 </div>
-
               </div>
 
-              {/* Read-only fields info */}
               <div style={{background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:'8px',padding:'10px 14px',fontSize:'12px',color:'#fbbf24',marginBottom:'1rem'}}>
                 ⚠️ To change contribution amount, governance type, or currency — requires 75% member vote (coming soon).
               </div>
@@ -319,7 +357,7 @@ export default function GroupPage() {
                 </div>
               )}
 
-              <div style={{display:'flex',gap:'10px'}}>
+              <div style={{display:'flex',gap:'10px',marginBottom:'1.5rem'}}>
                 <button
                   type="submit"
                   disabled={settingsLoading}
@@ -336,6 +374,86 @@ export default function GroupPage() {
                 </button>
               </div>
             </form>
+
+            {/* Danger Zone */}
+            <div style={{borderTop:'1px solid rgba(239,68,68,.15)',paddingTop:'1.25rem'}}>
+              <div style={{fontSize:'12px',color:'#f87171',fontWeight:600,marginBottom:'8px',textTransform:'uppercase',letterSpacing:'.5px'}}>⚠️ Danger Zone</div>
+              <button
+                type="button"
+                onClick={() => { setShowSettings(false); setShowDelete(true) }}
+                style={{width:'100%',background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.25)',color:'#f87171',padding:'10px',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:600}}
+              >
+                🗑️ Delete this circle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Circle Modal */}
+      {showDelete && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
+          <div style={{background:'#0a1628',border:'1px solid rgba(239,68,68,.3)',borderRadius:'16px',padding:'2rem',width:'100%',maxWidth:'440px'}}>
+            <h2 style={{color:'#f87171',marginBottom:'0.5rem'}}>🗑️ Delete circle</h2>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:'13px',marginBottom:'1.5rem'}}>
+              This action is permanent and cannot be undone. All circle data will be deleted.
+            </p>
+
+            {/* Checks */}
+            <div style={{display:'flex',flexDirection:'column',gap:'8px',marginBottom:'1.5rem'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'10px',fontSize:'13px'}}>
+                <span style={{color: parseFloat(circle.totalSaved || '0') === 0 ? '#34d399' : '#f87171'}}>
+                  {parseFloat(circle.totalSaved || '0') === 0 ? '✅' : '❌'}
+                </span>
+                <span style={{color:'rgba(255,255,255,.7)'}}>
+                  Balance: ${circle.totalSaved || 0} saved
+                  {parseFloat(circle.totalSaved || '0') > 0 && <span style={{color:'#f87171'}}> — withdraw funds first!</span>}
+                </span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'10px',fontSize:'13px'}}>
+                <span style={{color: members.filter(m => m.userId !== userId).length === 0 ? '#34d399' : '#f87171'}}>
+                  {members.filter(m => m.userId !== userId).length === 0 ? '✅' : '❌'}
+                </span>
+                <span style={{color:'rgba(255,255,255,.7)'}}>
+                  Members: {members.length} total
+                  {members.filter(m => m.userId !== userId).length > 0 && <span style={{color:'#f87171'}}> — ask others to leave first!</span>}
+                </span>
+              </div>
+            </div>
+
+            <div style={{marginBottom:'1rem'}}>
+              <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>
+                Type DELETE to confirm
+              </label>
+              <input
+                value={deleteConfirm}
+                onChange={e => setDeleteConfirm(e.target.value)}
+                placeholder="DELETE"
+                style={{width:'100%',background:'rgba(239,68,68,.05)',border:'1px solid rgba(239,68,68,.2)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
+              />
+            </div>
+
+            {deleteError && (
+              <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#f87171',marginBottom:'1rem'}}>
+                {deleteError}
+              </div>
+            )}
+
+            <div style={{display:'flex',gap:'10px'}}>
+              <button
+                onClick={handleDeleteCircle}
+                disabled={deleteLoading || deleteConfirm !== 'DELETE'}
+                style={{flex:1,background: deleteConfirm === 'DELETE' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'rgba(239,68,68,.1)',color:'white',padding:'11px',borderRadius:'8px',border:'none',fontWeight:600,cursor: deleteConfirm === 'DELETE' ? 'pointer' : 'not-allowed',fontSize:'14px',opacity: deleteLoading ? 0.7 : 1}}
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete circle'}
+              </button>
+              <button
+                onClick={() => { setShowDelete(false); setDeleteConfirm(''); setDeleteError('') }}
+                style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',padding:'11px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'14px'}}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
