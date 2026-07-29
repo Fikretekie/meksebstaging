@@ -19,6 +19,7 @@ export default function GroupPage() {
   const [userId, setUserId] = useState('')
   const [circleId, setCircleId] = useState('')
 
+  // Invite modal state
   const [showInvite, setShowInvite] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -26,6 +27,16 @@ export default function GroupPage() {
   const [inviteError, setInviteError] = useState('')
   const [inviteLink, setInviteLink] = useState('')
   const [copied, setCopied] = useState(false)
+
+  // Group settings modal state
+  const [showSettings, setShowSettings] = useState(false)
+  const [settingsLoading, setSettingsLoading] = useState(false)
+  const [settingsSuccess, setSettingsSuccess] = useState('')
+  const [settingsError, setSettingsError] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editGoal, setEditGoal] = useState('')
+  const [editMaxMembers, setEditMaxMembers] = useState('')
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -42,13 +53,17 @@ export default function GroupPage() {
       const uid = (payload?.sub as string) || ''
       setUserId(uid)
 
-      // Load circle details
       const res = await fetch(`${API_URL}/circles?userId=${uid}`)
       const data = await res.json()
       const found = data.circles?.find((c: any) => c.circleId === id)
-      if (found) setCircle(found)
+      if (found) {
+        setCircle(found)
+        setEditName(found.name || '')
+        setEditDesc(found.description || '')
+        setEditGoal(found.goal || '')
+        setEditMaxMembers(found.maxMembers || '')
+      }
 
-      // Load members
       const mRes = await fetch(`${API_URL}/members?circleId=${id}`)
       const mData = await mRes.json()
       if (mData.members) setMembers(mData.members)
@@ -57,6 +72,61 @@ export default function GroupPage() {
       console.error('loadData error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSettingsError('')
+    setSettingsSuccess('')
+
+    // Validate goal is a number
+    if (editGoal && isNaN(parseFloat(editGoal))) {
+      setSettingsError('Savings goal must be a number.')
+      return
+    }
+
+    // Validate max members can only increase
+    if (editMaxMembers && parseInt(editMaxMembers) < parseInt(circle.maxMembers)) {
+      setSettingsError('Max members can only be increased, not decreased.')
+      return
+    }
+
+    setSettingsLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/circles`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          circleId,
+          name: editName,
+          description: editDesc,
+          goal: editGoal,
+          maxMembers: parseInt(editMaxMembers),
+          updatedBy: userId,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setSettingsError(data.error)
+      } else {
+        setCircle((prev: any) => ({
+          ...prev,
+          name: editName,
+          description: editDesc,
+          goal: editGoal,
+          maxMembers: editMaxMembers,
+        }))
+        setSettingsSuccess('Circle settings updated! ✅')
+        setTimeout(() => {
+          setSettingsSuccess('')
+          setShowSettings(false)
+        }, 2000)
+      }
+    } catch (err: any) {
+      setSettingsError(err.message || 'Failed to update settings.')
+    } finally {
+      setSettingsLoading(false)
     }
   }
 
@@ -163,7 +233,7 @@ export default function GroupPage() {
           <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
             <button
               style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.7)',padding:'9px 16px',borderRadius:'9px',fontSize:'13px',cursor:'pointer'}}
-              onClick={() => alert('Group settings coming soon!')}
+              onClick={() => setShowSettings(true)}
             >
               Group settings
             </button>
@@ -176,6 +246,99 @@ export default function GroupPage() {
           </div>
         )}
       </div>
+
+      {/* Group Settings Modal */}
+      {showSettings && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
+          <div style={{background:'#0a1628',border:'1px solid rgba(255,255,255,.1)',borderRadius:'16px',padding:'2rem',width:'100%',maxWidth:'480px'}}>
+            <h2 style={{color:'white',marginBottom:'0.5rem'}}>Group settings</h2>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:'13px',marginBottom:'1.5rem'}}>
+              Edit your circle details. Changes to contribution amount and governance require member vote.
+            </p>
+
+            <form onSubmit={handleSaveSettings}>
+              <div style={{display:'flex',flexDirection:'column',gap:'14px',marginBottom:'1.5rem'}}>
+
+                <div>
+                  <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Circle name</label>
+                  <input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
+                  />
+                </div>
+
+                <div>
+                  <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Description</label>
+                  <textarea
+                    value={editDesc}
+                    onChange={e => setEditDesc(e.target.value)}
+                    rows={3}
+                    style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px',resize:'vertical',fontFamily:'inherit'}}
+                  />
+                </div>
+
+                <div>
+                  <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Savings goal ($)</label>
+                  <input
+                    type="number"
+                    value={editGoal}
+                    onChange={e => setEditGoal(e.target.value)}
+                    placeholder="e.g. 10000"
+                    style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
+                  />
+                </div>
+
+                <div>
+                  <label style={{fontSize:'11px',color:'rgba(255,255,255,.5)',display:'block',marginBottom:'6px',textTransform:'uppercase',letterSpacing:'.5px'}}>Max members (can only increase)</label>
+                  <input
+                    type="number"
+                    value={editMaxMembers}
+                    onChange={e => setEditMaxMembers(e.target.value)}
+                    min={circle.maxMembers}
+                    style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px',padding:'10px 14px',color:'white',fontSize:'14px'}}
+                  />
+                  <p style={{fontSize:'11px',color:'rgba(255,255,255,.3)',marginTop:'4px'}}>Current: {circle.maxMembers} members</p>
+                </div>
+
+              </div>
+
+              {/* Read-only fields info */}
+              <div style={{background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.2)',borderRadius:'8px',padding:'10px 14px',fontSize:'12px',color:'#fbbf24',marginBottom:'1rem'}}>
+                ⚠️ To change contribution amount, governance type, or currency — requires 75% member vote (coming soon).
+              </div>
+
+              {settingsSuccess && (
+                <div style={{background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.2)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#34d399',marginBottom:'1rem'}}>
+                  {settingsSuccess}
+                </div>
+              )}
+              {settingsError && (
+                <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:'8px',padding:'10px',fontSize:'13px',color:'#f87171',marginBottom:'1rem'}}>
+                  {settingsError}
+                </div>
+              )}
+
+              <div style={{display:'flex',gap:'10px'}}>
+                <button
+                  type="submit"
+                  disabled={settingsLoading}
+                  style={{flex:1,background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',padding:'11px',borderRadius:'8px',border:'none',fontWeight:600,cursor:'pointer',fontSize:'14px'}}
+                >
+                  {settingsLoading ? 'Saving...' : 'Save changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowSettings(false); setSettingsError(''); setSettingsSuccess('') }}
+                  style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.6)',padding:'11px 16px',borderRadius:'8px',cursor:'pointer',fontSize:'14px'}}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Invite Modal */}
       {showInvite && (
