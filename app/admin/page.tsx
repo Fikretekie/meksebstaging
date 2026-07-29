@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState(null)
   const [statsLoading, setStatsLoading] = useState(true)
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function AdminPage() {
       try {
         const session = await fetchAuthSession()
         const payload = session.tokens?.idToken?.payload
-        const email = (payload?.email as string) || ''
+        const email = (payload?.email) || ''
         if (email !== ADMIN_EMAIL) {
           window.location.href = '/dashboard/index.html'
           return
@@ -55,6 +55,11 @@ export default function AdminPage() {
 
   if (!authorized) return null
 
+  const s = stats || {}
+  const ses = s.ses || {}
+  const stripe = s.stripe || {}
+  const freeEmailsLeft = (ses.max24HourSend || 0) - (ses.sentLast24Hours || 0)
+
   return (
     <div style={{minHeight:'100vh',background:'#060d1a',padding:'1.5rem',maxWidth:'900px',margin:'0 auto'}}>
 
@@ -66,33 +71,83 @@ export default function AdminPage() {
             <p style={{color:'rgba(255,255,255,.4)',fontSize:'12px',margin:0}}>Platform management</p>
           </div>
         </div>
-        <a href="/dashboard/index.html" style={{fontSize:'13px',color:'#3b82f6',textDecoration:'none',padding:'8px 16px',border:'1px solid rgba(37,99,235,.3)',borderRadius:'8px'}}>← Dashboard</a>
+        <div style={{display:'flex',gap:'8px'}}>
+          <button onClick={loadStats} style={{fontSize:'12px',color:'#3b82f6',background:'rgba(37,99,235,.1)',border:'1px solid rgba(37,99,235,.2)',borderRadius:'8px',padding:'8px 12px',cursor:'pointer'}}>🔄 Refresh</button>
+          <a href="/dashboard/index.html" style={{fontSize:'13px',color:'rgba(255,255,255,.6)',textDecoration:'none',padding:'8px 16px',border:'1px solid rgba(255,255,255,.1)',borderRadius:'8px'}}>← Dashboard</a>
+        </div>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'12px',marginBottom:'1.5rem'}}>
         <div style={{background:'linear-gradient(135deg,rgba(37,99,235,.2),rgba(37,99,235,.05))',border:'1px solid rgba(37,99,235,.3)',borderRadius:'16px',padding:'1.25rem'}}>
-          <div style={{fontSize:'28px',marginBottom:'4px'}}>👥</div>
+          <div style={{fontSize:'24px',marginBottom:'4px'}}>👥</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Users</div>
-          <div style={{fontSize:'32px',fontWeight:800,color:'#60a5fa'}}>{statsLoading ? '...' : stats?.totalUsers ?? '—'}</div>
-          <div style={{fontSize:'11px',color:'#34d399',marginTop:'4px'}}>+{statsLoading ? '...' : stats?.newUsersThisWeek ?? 0} this week</div>
+          <div style={{fontSize:'32px',fontWeight:800,color:'#60a5fa'}}>{statsLoading ? '...' : s.totalUsers ?? '—'}</div>
+          <div style={{fontSize:'11px',color:'#34d399',marginTop:'4px'}}>+{statsLoading ? '...' : s.newUsersThisWeek ?? 0} this week</div>
         </div>
         <div style={{background:'linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.05))',border:'1px solid rgba(16,185,129,.3)',borderRadius:'16px',padding:'1.25rem'}}>
-          <div style={{fontSize:'28px',marginBottom:'4px'}}>⭕</div>
+          <div style={{fontSize:'24px',marginBottom:'4px'}}>⭕</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Circles</div>
-          <div style={{fontSize:'32px',fontWeight:800,color:'#34d399'}}>{statsLoading ? '...' : stats?.totalCircles ?? '—'}</div>
-          <div style={{fontSize:'11px',color:'#34d399',marginTop:'4px'}}>{statsLoading ? '...' : stats?.activeCircles ?? 0} active</div>
+          <div style={{fontSize:'32px',fontWeight:800,color:'#34d399'}}>{statsLoading ? '...' : s.totalCircles ?? '—'}</div>
+          <div style={{fontSize:'11px',color:'#34d399',marginTop:'4px'}}>{statsLoading ? '...' : s.activeCircles ?? 0} active</div>
         </div>
         <div style={{background:'linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.05))',border:'1px solid rgba(245,158,11,.3)',borderRadius:'16px',padding:'1.25rem'}}>
-          <div style={{fontSize:'28px',marginBottom:'4px'}}>💳</div>
+          <div style={{fontSize:'24px',marginBottom:'4px'}}>💳</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Payments</div>
-          <div style={{fontSize:'32px',fontWeight:800,color:'#fbbf24'}}>{statsLoading ? '...' : stats?.totalPayments ?? '—'}</div>
+          <div style={{fontSize:'32px',fontWeight:800,color:'#fbbf24'}}>{statsLoading ? '...' : s.totalPayments ?? '—'}</div>
           <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginTop:'4px'}}>transactions</div>
         </div>
         <div style={{background:'linear-gradient(135deg,rgba(167,139,250,.2),rgba(167,139,250,.05))',border:'1px solid rgba(167,139,250,.3)',borderRadius:'16px',padding:'1.25rem'}}>
-          <div style={{fontSize:'28px',marginBottom:'4px'}}>💰</div>
+          <div style={{fontSize:'24px',marginBottom:'4px'}}>💰</div>
           <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginBottom:'4px'}}>Total Saved</div>
-          <div style={{fontSize:'32px',fontWeight:800,color:'#a78bfa'}}>${statsLoading ? '...' : stats?.totalSaved ?? '0'}</div>
+          <div style={{fontSize:'32px',fontWeight:800,color:'#a78bfa'}}>${statsLoading ? '...' : s.totalSaved ?? '0'}</div>
           <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginTop:'4px'}}>across all circles</div>
+        </div>
+      </div>
+
+      <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'14px',padding:'1.25rem',marginBottom:'1.25rem'}}>
+        <h2 style={{color:'white',fontSize:'0.9rem',fontWeight:600,marginBottom:'1rem'}}>💰 Stripe Revenue</h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px'}}>
+          <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>This Month</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>${statsLoading ? '...' : stripe.monthRevenue?.toFixed(2) ?? '0'}</div>
+          </div>
+          <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Payments This Month</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : stripe.thisMonthPayments ?? '0'}</div>
+          </div>
+          <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Total Revenue</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>${statsLoading ? '...' : stripe.totalRevenue?.toFixed(2) ?? '0'}</div>
+          </div>
+        </div>
+        <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer" style={{display:'block',textAlign:'center',marginTop:'12px',fontSize:'12px',color:'#60a5fa',textDecoration:'none'}}>View full Stripe dashboard →</a>
+      </div>
+
+      <div style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'14px',padding:'1.25rem',marginBottom:'1.25rem'}}>
+        <h2 style={{color:'white',fontSize:'0.9rem',fontWeight:600,marginBottom:'1rem'}}>📧 SES Email Stats</h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px',marginBottom:'12px'}}>
+          <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Today</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#60a5fa'}}>{statsLoading ? '...' : ses.emailsSent24h ?? '0'}</div>
+          </div>
+          <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>This Week</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#60a5fa'}}>{statsLoading ? '...' : ses.emailsSentWeek ?? '0'}</div>
+          </div>
+          <div style={{background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>This Month</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#60a5fa'}}>{statsLoading ? '...' : ses.emailsSentMonth ?? '0'}</div>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'12px'}}>
+          <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Free Emails Left Today</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : freeEmailsLeft}</div>
+          </div>
+          <div style={{background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.15)',borderRadius:'10px',padding:'12px',textAlign:'center'}}>
+            <div style={{fontSize:'11px',color:'rgba(255,255,255,.4)',marginBottom:'4px'}}>Daily Limit</div>
+            <div style={{fontSize:'20px',fontWeight:700,color:'#34d399'}}>{statsLoading ? '...' : ses.max24HourSend ?? '0'}</div>
+          </div>
         </div>
       </div>
 
