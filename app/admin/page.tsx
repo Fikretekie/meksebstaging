@@ -13,6 +13,8 @@ export default function AdminPage() {
   const [stats, setStats] = useState<any>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [tab, setTab] = useState('overview')
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState('')
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true)
@@ -26,6 +28,22 @@ export default function AdminPage() {
       setStatsLoading(false)
     }
   }, [])
+
+  const sendReminders = async () => {
+    setSending(true)
+    setSendResult('')
+    try {
+      const res = await fetch('https://duv7vuo6z2.execute-api.us-east-1.amazonaws.com/reminders', {
+        method: 'POST',
+      })
+      const data = await res.json()
+      setSendResult(data.message || 'Reminders sent!')
+    } catch (err) {
+      setSendResult('Failed to send reminders.')
+    } finally {
+      setSending(false)
+    }
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -175,7 +193,6 @@ export default function AdminPage() {
   return (
     <div style={{minHeight:'100vh',background:'#060d1a',fontFamily:'system-ui,sans-serif',color:'white'}}>
 
-      {/* Top Nav */}
       <div style={{background:'#0a1628',borderBottom:'1px solid rgba(255,255,255,.08)',padding:'0 14px',display:'flex',alignItems:'center',justifyContent:'space-between',height:52,position:'sticky',top:0,zIndex:100}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           <div style={{width:28,height:28,background:'linear-gradient(135deg,#2563eb,#06b6d4)',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,color:'white'}}>M</div>
@@ -190,7 +207,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={{display:'flex',background:'rgba(255,255,255,.03)',borderBottom:'1px solid rgba(255,255,255,.06)',overflowX:'auto',padding:'0 14px'}}>
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)} style={{fontSize:12,padding:'12px 16px',border:'none',background:'transparent',color: tab===t ? '#60a5fa' : 'rgba(255,255,255,.4)',cursor:'pointer',whiteSpace:'nowrap',borderBottom: tab===t ? '2px solid #2563eb' : '2px solid transparent',fontWeight: tab===t ? 600 : 400,textTransform:'capitalize'}}>
@@ -217,7 +233,7 @@ export default function AdminPage() {
             <div style={card}>
               <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',marginBottom:12}}>📊 Growth — last 7 days</div>
               <div style={{position:'relative',height:130}}>
-                <canvas id="lineChart" role="img" aria-label="User and circle growth over 7 days">Growth chart.</canvas>
+                <canvas id="lineChart" role="img" aria-label="Growth chart">Growth chart.</canvas>
               </div>
               <div style={{display:'flex',gap:16,marginTop:10,justifyContent:'center'}}>
                 <span style={{fontSize:11,color:'rgba(255,255,255,.5)',display:'flex',alignItems:'center',gap:5}}>
@@ -268,6 +284,26 @@ export default function AdminPage() {
                 { label:'This month', value: ses.emailsSentMonth||0, pct:80, bg:'linear-gradient(90deg,#2563eb,#06b6d4)', color:'#60a5fa' },
                 { label:'Daily limit', value: (ses.max24HourSend||50000).toLocaleString(), pct:100, bg:'#10b981', color:'#34d399' },
               ])}
+            </div>
+
+            {/* Send Reminders */}
+            <div style={card}>
+              <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',marginBottom:8}}>⏰ Payment reminders</div>
+              <p style={{fontSize:12,color:'rgba(255,255,255,.4)',marginBottom:12}}>
+                Send payment reminder emails to all members who have not paid this month.
+              </p>
+              {sendResult && (
+                <div style={{fontSize:12,color:'#34d399',background:'rgba(16,185,129,.1)',border:'1px solid rgba(16,185,129,.2)',borderRadius:8,padding:'10px',marginBottom:12}}>
+                  ✅ {sendResult}
+                </div>
+              )}
+              <button
+                onClick={sendReminders}
+                disabled={sending}
+                style={{width:'100%',padding:'13px',background: sending ? 'rgba(37,99,235,.3)' : 'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'white',border:'none',borderRadius:9,fontSize:13,fontWeight:600,cursor: sending ? 'not-allowed' : 'pointer'}}
+              >
+                {sending ? '⏳ Sending reminders...' : '📧 Send payment reminders'}
+              </button>
             </div>
 
             <div style={card}>
