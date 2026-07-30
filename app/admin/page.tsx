@@ -52,7 +52,7 @@ export default function AdminPage() {
   }, [authorized, loadStats])
 
   useEffect(() => {
-    if (!stats) return
+    if (!stats || tab !== 'overview') return
     const timer = setTimeout(() => {
       const ses = stats.ses || {}
       const emailsUsed = ses.sentLast24Hours || 0
@@ -122,7 +122,7 @@ export default function AdminPage() {
       }
     }, 600)
     return () => clearTimeout(timer)
-  }, [stats])
+  }, [stats, tab])
 
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'#060d1a'}}>
@@ -203,7 +203,6 @@ export default function AdminPage() {
 
         {tab === 'overview' && (
           <div>
-            {/* KPI 2x2 */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,marginBottom:10}}>
               {kpiCards.map(c => (
                 <div key={c.label} style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)',borderRadius:12,padding:16,position:'relative',overflow:'hidden'}}>
@@ -215,7 +214,6 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Line Chart */}
             <div style={card}>
               <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',marginBottom:12}}>📊 Growth — last 7 days</div>
               <div style={{position:'relative',height:130}}>
@@ -231,7 +229,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Donut */}
             <div style={card}>
               <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',marginBottom:14}}>📧 SES email quota</div>
               <div style={{display:'flex',alignItems:'center',gap:20}}>
@@ -254,7 +251,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Stripe */}
             <div style={card}>
               <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',marginBottom:14}}>💰 Stripe revenue</div>
               {barSection([
@@ -264,7 +260,6 @@ export default function AdminPage() {
               ])}
             </div>
 
-            {/* Email stats */}
             <div style={card}>
               <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',marginBottom:14}}>📧 Email stats</div>
               {barSection([
@@ -275,7 +270,6 @@ export default function AdminPage() {
               ])}
             </div>
 
-            {/* Quick Links */}
             <div style={card}>
               <div style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',marginBottom:12}}>⚡ Quick links</div>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
