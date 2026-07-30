@@ -8,7 +8,7 @@ import styles from './layout.module.css'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname()
-  const [userName, setUserName] = useState('Loading...')
+  const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [initials, setInitials] = useState('...')
   const [circleCount, setCircleCount] = useState(0)
@@ -34,15 +34,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setInitials(name.slice(0, 2).toUpperCase())
         setAuthReady(true)
 
+        // Load circles in background - don't block auth ready
         if (userId) {
-          const data = await getCircles(userId)
-          if (data.circles) {
-            setCircleCount(data.circles.length)
-          }
+          getCircles(userId).then(data => {
+            if (data.circles) setCircleCount(data.circles.length)
+          }).catch(() => {})
         }
+
       } catch (err) {
-        if (retryCount < 8) {
-          setTimeout(() => loadUser(retryCount + 1), 1500)
+        if (retryCount < 3) {
+          setTimeout(() => loadUser(retryCount + 1), 500)
         } else {
           window.location.href = '/auth/login/index.html'
         }
